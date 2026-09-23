@@ -1,0 +1,17 @@
+# Alembic avtomatik yaratadigan migratsiyalar qo'lda formatlanmaydi.
+exclude = ["alembic/versions"]
+
+line-length = 88
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "B008",   # FastAPI Depends() argument default — idiomatik
+    "UP046",  # Generic[T] — Pydantic bilan aniq va bashorat qilinadigan
+    "UP047",
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]
+"alembic/*" = ["E402", "F401"]

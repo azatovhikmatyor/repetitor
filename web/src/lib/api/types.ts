@@ -1,0 +1,457 @@
+/**
+ * Backend javoblarining tiplari.
+ *
+ * Maydonlar API'dagidek `snake_case` da qoldirilgan — shunda javobni
+ * qayta nomlash qatlami kerak bo'lmaydi va Swagger bilan taqqoslash oson.
+ */
+
+export type UserRole = 'super_admin' | 'teacher' | 'student'
+
+/** `pending` — ro'yxatdan o'tgan, lekin admin hali tasdiqlamagan. */
+export type UserStatus = 'pending' | 'active' | 'blocked'
+
+export interface User {
+  id: number
+  role: UserRole
+  status: UserStatus
+  first_name: string
+  last_name: string | null
+  /** Sharifi (otasining ismi) — profildan to'ldiriladi. */
+  middle_name: string | null
+  username: string | null
+  phone: string | null
+  email: string | null
+  avatar_url: string | null
+  must_change_password: boolean
+  created_at: string
+  last_login_at?: string | null
+  /** Serverda hisoblanadi: `first_name last_name`. */
+  full_name: string
+  is_active: boolean
+  /** False bo'lsa (email ham, telefon ham yo'q) parolni faqat admin tiklaydi. */
+  can_reset_password_alone?: boolean
+}
+
+export interface TokenPair {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  expires_at: string
+  must_change_password: boolean
+}
+
+export interface LoginResponse extends TokenPair {
+  user: User
+}
+
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  size: number
+  pages: number
+}
+
+/** Backend'ning yagona xatolik shakli. */
+export interface ApiErrorBody {
+  code: string
+  detail: string
+  details?: unknown
+}
+
+export interface FieldError {
+  field: string
+  message: string
+}
+
+// --- Guruhlar ---
+
+export type GroupStatus = 'active' | 'archived'
+
+export interface Group {
+  id: number
+  name: string
+  description: string | null
+  monthly_fee: number
+  /** Amaldagi jadvalning qisqa matni — jadvaldan hosil bo'ladi. */
+  schedule: string | null
+  /** Alohida narxlar hisobga olingan holda oylik kutilma. */
+  expected_monthly: number
+  status: GroupStatus
+  archived_at: string | null
+  created_at: string
+  student_count: number
+}
+
+export interface StudentSummary {
+  id: number
+  first_name: string
+  last_name: string | null
+  phone: string | null
+  username: string | null
+  avatar_url: string | null
+  status: UserStatus
+  full_name: string
+  is_active: boolean
+}
+
+export type EnrollmentStatus = 'active' | 'inactive'
+
+/** Guruhdagi o'quvchi. "Enrollment" atamasi UI'da ko'rinmaydi. */
+export interface GroupStudent {
+  enrollment_id: number
+  student: StudentSummary
+  /** null — guruh narxi, 0 — bepul o'qiydi. */
+  custom_fee: number | null
+  fee_note: string | null
+  monthly_fee: number
+  /** Guruh narxidan qancha kam to'laydi. */
+  discount: number
+  status: EnrollmentStatus
+  joined_on: string
+  left_on: string | null
+}
+
+export interface AddStudentResponse {
+  student: GroupStudent
+  temporary_password: string | null
+}
+
+/** Ro'yxatdan o'tish javobi — token yo'q, hisob tasdiqlashni kutadi. */
+export interface RegisterResponse {
+  user_id: number
+  username: string
+  detail: string
+}
+
+export interface ForgotPasswordResponse {
+  detail: string
+  channel: 'email' | 'sms' | null
+}
+
+export interface StudentGroupRef {
+  group_id: number
+  group_name: string
+  status: EnrollmentStatus
+  monthly_fee: number
+  joined_on: string
+}
+
+/** Ro'yxatdagi o'quvchi — kartada ko'rsatiladigan qo'shimchalar bilan. */
+export interface StudentListItem extends StudentSummary {
+  group_count: number
+  group_names: string[]
+  debt: number
+  parent_name: string | null
+  parent_phone: string | null
+  school: string | null
+}
+
+export interface StudentDetail extends StudentSummary {
+  middle_name: string | null
+  birth_date: string | null
+  parent_name: string | null
+  parent_phone: string | null
+  school: string | null
+  note: string | null
+  must_change_password: boolean
+  last_login_at: string | null
+  created_at: string
+  groups: StudentGroupRef[]
+}
+
+// --- Davomat ---
+
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused'
+
+export interface AttendanceStudent {
+  student_id: number
+  full_name: string
+  status: AttendanceStatus
+}
+
+/** Kundagi bitta dars — bir kunda ikkitasi bo'lishi mumkin. */
+export interface DayLesson {
+  start_time: string | null
+  end_time: string | null
+  session_id: number | null
+  is_saved: boolean
+}
+
+export interface AttendanceSession {
+  group_id: number
+  session_date: string
+  start_time: string | null
+  day_lessons: DayLesson[]
+  session_id: number | null
+  is_saved: boolean
+  is_editable: boolean
+  note: string | null
+  students: AttendanceStudent[]
+  present_count: number
+  absent_count: number
+}
+
+export interface MonthlyAttendanceRow {
+  student_id: number
+  full_name: string
+  marks: Record<string, AttendanceStatus>
+  present_count: number
+  absent_count: number
+  attendance_rate: number
+}
+
+/** Oylik jadvaldagi bitta ustun — bir dars. */
+export interface MonthlyColumn {
+  key: string
+  lesson_date: string
+  start_time: string | null
+  is_planned: boolean
+  is_saved: boolean
+}
+
+export interface MonthlyAttendance {
+  group_id: number
+  year: number
+  month: number
+  columns: MonthlyColumn[]
+  students: MonthlyAttendanceRow[]
+}
+
+// --- Jadval ---
+
+export interface ScheduleSlot {
+  id: number
+  weekday: number
+  weekday_name: string
+  start_time: string
+  end_time: string | null
+}
+
+export interface ScheduleVersion {
+  id: number
+  effective_from: string
+  effective_to: string | null
+  note: string | null
+  is_current: boolean
+  display: string | null
+  slots: ScheduleSlot[]
+}
+
+export interface GroupSchedule {
+  group_id: number
+  current: ScheduleVersion | null
+  history: ScheduleVersion[]
+}
+
+export interface SlotInput {
+  weekday: number
+  start_time: string
+  end_time?: string | null
+}
+
+export interface StudentGroupAttendance {
+  group_id: number
+  group_name: string
+  total_sessions: number
+  present_count: number
+  absent_count: number
+  late_count: number
+  excused_count: number
+  attendance_rate: number
+}
+
+export interface StudentAttendance {
+  student_id: number
+  full_name: string
+  groups: StudentGroupAttendance[]
+}
+
+// --- To'lovlar ---
+
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other'
+export type ChargeStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid'
+
+export interface Charge {
+  charge_id: number
+  student_id: number
+  full_name: string
+  amount_due: number
+  amount_paid: number
+  balance: number
+  status: ChargeStatus
+  note: string | null
+}
+
+export interface GroupMonth {
+  group_id: number
+  group_name: string
+  year: number
+  month: number
+  total_due: number
+  total_paid: number
+  total_debt: number
+  students: Charge[]
+}
+
+/** Qarzi bor bitta hisob — bosh sahifadagi "Qarz" raqamining tafsiloti. */
+export interface Debtor extends GroupRef {
+  charge_id: number
+  student_id: number
+  full_name: string
+  phone: string | null
+  amount_due: number
+  amount_paid: number
+  balance: number
+}
+
+export interface Debtors {
+  year: number
+  month: number
+  total_debt: number
+  items: Debtor[]
+}
+
+export interface Payment {
+  id: number
+  charge_id: number
+  group_id: number
+  group_name: string
+  student_id: number
+  full_name: string
+  year: number
+  month: number
+  /** Musbat — to'lov, manfiy — bekor qilish yozuvi. */
+  amount: number
+  method: PaymentMethod
+  paid_at: string
+  note: string | null
+  is_reversal: boolean
+  reverses_id: number | null
+  created_at: string
+}
+
+export interface StudentCharge extends Charge {
+  group_id: number
+  group_name: string
+  year: number
+  month: number
+  payments: Payment[]
+}
+
+// --- Hisobotlar ---
+
+export interface GroupRef {
+  group_id: number
+  group_name: string
+}
+
+export interface DashboardGroupCard extends GroupRef {
+  student_count: number
+  total_due: number
+  total_paid: number
+  total_debt: number
+  attendance_taken_today: boolean
+}
+
+export interface Dashboard {
+  year: number
+  month: number
+  collected: number
+  expected: number
+  debt: number
+  collection_rate: number
+  debtor_count: number
+  active_group_count: number
+  active_student_count: number
+  groups: DashboardGroupCard[]
+  groups_without_attendance_today: GroupRef[]
+}
+
+export interface MonthlyGroupSummary extends GroupRef {
+  student_count: number
+  total_due: number
+  total_paid: number
+  total_debt: number
+  paid_count: number
+  partial_count: number
+  unpaid_count: number
+}
+
+export interface MonthlyReport {
+  year: number
+  month: number
+  total_due: number
+  total_paid: number
+  total_debt: number
+  groups: MonthlyGroupSummary[]
+}
+
+export interface RevenuePoint {
+  year: number
+  month: number
+  collected: number
+  expected: number
+}
+
+export interface GroupAttendanceRate extends GroupRef {
+  session_count: number
+  attendance_rate: number
+}
+
+export interface FrequentAbsentee {
+  student_id: number
+  full_name: string
+  absent_count: number
+  total_sessions: number
+  attendance_rate: number
+}
+
+export interface AttendanceReport {
+  groups: GroupAttendanceRate[]
+  frequent_absentees: FrequentAbsentee[]
+}
+
+// --- Admin ---
+
+export interface Teacher {
+  id: number
+  first_name: string
+  last_name: string | null
+  middle_name: string | null
+  username: string | null
+  email: string | null
+  phone: string | null
+  avatar_url: string | null
+  status: UserStatus
+  created_at: string
+  approved_at: string | null
+  last_login_at: string | null
+  active_group_count: number
+  student_count: number
+  full_name: string
+  can_reset_password_alone: boolean
+}
+
+/** O'chirishdan oldin nima yo'qolishi. */
+export interface TeacherDeletePreview {
+  teacher_id: number
+  full_name: string
+  group_count: number
+  student_count: number
+  attendance_session_count: number
+  payment_count: number
+  total_collected: number
+}
+
+export interface AdminStats {
+  teacher_count: number
+  active_teacher_count: number
+  pending_teacher_count: number
+  student_count: number
+  group_count: number
+  active_group_count: number
+  attendance_sessions_last_30_days: number
+  new_teachers_last_30_days: number
+  new_groups_last_30_days: number
+}

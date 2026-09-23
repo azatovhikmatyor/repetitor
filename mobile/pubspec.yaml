@@ -1,0 +1,38 @@
+name: repetitor
+description: Repetitor o'qituvchilar uchun guruh, davomat va to'lov boshqaruvi.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  # Flutter 3.27+ kerak: Color.withValues(), CardThemeData.
+  sdk: ">=3.6.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Holat boshqaruvi. Kod generatsiyasiz (riverpod_generator) ishlatilyapti —
+  # loyihani klonlagan odam `flutter pub get` dan keyin darrov ishga tushira
+  # oladi, `build_runner` bosqichi kerak emas.
+  flutter_riverpod: ^2.6.1
+
+  # HTTP. Dio tanlandi, chunki interceptor'lar orqali token qo'shish va 401
+  # da refresh qilib so'rovni qayta yuborish bir joyda hal bo'ladi.
+  dio: ^5.7.0
+
+  # Navigatsiya — deklarativ, auth holatiga qarab avtomatik yo'naltirish.
+  go_router: ^14.6.2
+
+  # Tokenlar Keychain/Keystore da saqlanadi, SharedPreferences da emas.
+  flutter_secure_storage: ^9.2.2
+
+  # Sana va son formati (500 000 so'm).
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
