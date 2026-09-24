@@ -119,6 +119,36 @@ class AddStudentResponse(BaseModel):
     )
 
 
+class ImportRow(BaseModel):
+    """Ro'yxatdan bitta qator."""
+
+    first_name: str = Field(min_length=2, max_length=80)
+    last_name: OptionalText = Field(default=None, max_length=80)
+    phone: OptionalText = Field(default=None, max_length=32)
+    custom_fee: int | None = Field(default=None, ge=0)
+
+
+class ImportRequest(BaseModel):
+    rows: list[ImportRow] = Field(min_length=1, max_length=200)
+    joined_on: date | None = None
+
+
+class ImportResultRow(BaseModel):
+    line: int = Field(description="Qatorning ro'yxatdagi tartibi, 1 dan")
+    full_name: str
+    student_id: int | None = None
+    temporary_password: str | None = None
+    error: str | None = Field(default=None, description="Bo'sh bo'lsa — qo'shildi")
+
+
+class ImportResult(BaseModel):
+    """Import natijasi — qo'shilganlar va sabablari bilan o'tkazilganlar."""
+
+    added: int
+    failed: int
+    rows: list[ImportResultRow]
+
+
 class GroupStudentUpdate(BaseModel):
     custom_fee: int | None = Field(default=None, ge=0, description="0 — bepul o'qiydi")
     fee_note: OptionalText = Field(default=None, max_length=255)

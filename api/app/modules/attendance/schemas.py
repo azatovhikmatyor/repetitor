@@ -29,6 +29,12 @@ class AttendanceSaveRequest(BaseModel):
             "jadvaldan avtomatik olinadi"
         ),
     )
+    is_cancelled: bool = Field(
+        default=False,
+        description=(
+            "Dars o'tkazilmadi. Yozuvlar o'chiriladi va bu kun davomat foiziga kirmaydi"
+        ),
+    )
     note: str | None = Field(default=None, max_length=255)
     records: list[AttendanceMark] = Field(default_factory=list)
 
@@ -46,6 +52,7 @@ class DayLesson(BaseModel):
     end_time: time | None = None
     session_id: int | None = None
     is_saved: bool
+    is_cancelled: bool = False
 
 
 class AttendanceSessionOut(BaseModel):
@@ -65,6 +72,7 @@ class AttendanceSessionOut(BaseModel):
     is_editable: bool = Field(
         description="Arxivlangan guruh yoki kelajak sana bo'lsa — false"
     )
+    is_cancelled: bool = Field(default=False, description="Dars o'tkazilmagan")
     note: str | None = None
     students: list[AttendanceStudentOut]
     present_count: int
@@ -94,6 +102,7 @@ class MonthlyColumn(BaseModel):
     start_time: time | None
     is_planned: bool = Field(description="Jadval bo'yicha bo'lishi kerak edi")
     is_saved: bool = Field(description="Davomat kiritilgan")
+    is_cancelled: bool = Field(default=False, description="Dars o'tkazilmagan")
 
 
 class MonthlyAttendanceOut(BaseModel):
@@ -115,7 +124,21 @@ class StudentGroupAttendance(BaseModel):
     attendance_rate: float
 
 
+class StudentAttendanceEntry(BaseModel):
+    """Bitta dars — o'quvchi kartasidagi tarix uchun."""
+
+    lesson_date: date
+    start_time: time | None = None
+    group_id: int
+    group_name: str
+    status: AttendanceStatus
+
+
 class StudentAttendanceOut(BaseModel):
     student_id: int
     full_name: str
     groups: list[StudentGroupAttendance]
+    recent: list[StudentAttendanceEntry] = Field(
+        default_factory=list,
+        description="Oxirgi darslar — yangisi birinchi",
+    )

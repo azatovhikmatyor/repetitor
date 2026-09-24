@@ -16,9 +16,12 @@ import { api } from '@/lib/api/client'
 import { groupMonthQuery, paymentHistoryQuery, qk } from '@/lib/api/queries'
 import type { Charge, Payment } from '@/lib/api/types'
 import { formatDate, money } from '@/lib/format'
-import { chargeLabel, chargeTone, methodLabel } from '@/lib/labels'
+import { useAuth } from '@/lib/auth/auth-context'
+import { downloadCsv, slug } from '@/lib/export'
+import { chargeStateLabel, chargeStateTone, methodLabel } from '@/lib/labels'
 import { currentPeriod, shiftPeriod } from '@/lib/period'
 
+import { ReceiptModal } from './receipt-modal'
 import { RecordPaymentModal } from './record-payment-modal'
 
 /**
@@ -33,9 +36,11 @@ export function GroupPaymentsPage() {
   const [period, setPeriod] = useState(currentPeriod())
   const [charge, setCharge] = useState<Charge | null>(null)
   const [reversing, setReversing] = useState<Payment | null>(null)
+  const [receipt, setReceipt] = useState<Payment | null>(null)
 
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   const reverse = useMutation({
     mutationFn: (payment: Payment) => api.post(`/payments/${payment.id}/reverse`, {}),
@@ -63,7 +68,33 @@ export function GroupPaymentsPage() {
         title="To&rsquo;lovlar"
         description={month.data?.group_name}
         back={{ to: `/groups/${id}`, label: 'Guruh' }}
-        actions={<MonthPicker value={period} onChange={setPeriod} max={maxPeriod} />}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              disabled={!month.data}
+              onClick={() => {
+                if (!month.data) return
+                downloadCsv(
+                  `${slug(month.data.group_name)}-${period.year}-${String(
+                    period.month,
+                  ).padStart(2, '0')}`,
+                  ["O'quvchi", 'Kutilgan', "To'langan", 'Qarz', 'Holat'],
+                  month.data.students.map((item) => [
+                    item.full_name,
+                    item.amount_due,
+                    item.amount_paid,
+                    Math.max(item.balance, 0),
+                    chargeStateLabel(item.status, item.amount_due),
+                  ]),
+                )
+              }}
+            >
+              Excel
+            </Button>
+            <MonthPicker value={period} onChange={setPeriod} max={maxPeriod} />
+          </>
+        }
       />
 
       {month.isPending && <Loading rows={5} />}
@@ -143,8 +174,8 @@ export function GroupPaymentsPage() {
                     key: 'status',
                     header: 'Holat',
                     cell: (item) => (
-                      <Badge tone={chargeTone[item.status]}>
-                        {chargeLabel[item.status]}
+                      <Badge tone={chargeStateTone(item.status, item.amount_due)}>
+                        {chargeStateLabel(item.status, item.amount_due)}
                       </Badge>
                     ),
                   },
@@ -229,13 +260,22 @@ export function GroupPaymentsPage() {
                     footer: true,
                     cell: (payment) =>
                       payment.is_reversal ? null : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setReversing(payment)}
-                        >
-                          Bekor qilish
-                        </Button>
+                        <span className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setReceipt(payment)}
+                          >
+                            Kvitansiya
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setReversing(payment)}
+                          >
+                            Bekor qilish
+                          </Button>
+                        </span>
                       ),
                   },
                 ]}
@@ -255,6 +295,14 @@ export function GroupPaymentsPage() {
         message={`${reversing?.full_name ?? ''} — ${money(reversing?.amount ?? 0)}. Yozuv o'chmaydi: unga bog'langan manfiy summali tuzatuvchi yozuv qo'shiladi va ikkalasi ham tarixda qoladi.`}
         confirmLabel="Bekor qilish"
       />
+
+      {receipt && (
+        <ReceiptModal
+          payment={receipt}
+          teacherName={user?.full_name ?? ''}
+          onClose={() => setReceipt(null)}
+        />
+      )}
 
       {charge && (
         <RecordPaymentModal

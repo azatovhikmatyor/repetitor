@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { groupsQuery, studentsQuery } from '@/lib/api/queries'
 import type { StudentListItem } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { downloadCsv } from '@/lib/export'
 import { money } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
 
@@ -69,7 +70,29 @@ export function StudentsPage() {
         title="O&rsquo;quvchilar"
         description={data ? `${data.total} ta o'quvchi` : undefined}
         actions={
-          <div className="inline-flex rounded-lg bg-slate-100 p-1">
+          <>
+            <Button
+              variant="secondary"
+              disabled={items.length === 0}
+              onClick={() =>
+                downloadCsv(
+                  'oquvchilar',
+                  ['Ism', 'Telefon', 'Guruhlar', 'Qarz', 'Ota-ona', 'Telefon', 'Maktab'],
+                  items.map((student) => [
+                    student.full_name,
+                    student.phone,
+                    student.group_names.join(', '),
+                    student.debt,
+                    student.parent_name,
+                    student.parent_phone,
+                    student.school,
+                  ]),
+                )
+              }
+            >
+              Excel
+            </Button>
+            <div className="inline-flex rounded-lg bg-slate-100 p-1">
             {(
               [
                 { value: 'cards', label: 'Kartalar' },
@@ -90,7 +113,8 @@ export function StudentsPage() {
                 {option.label}
               </button>
             ))}
-          </div>
+            </div>
+          </>
         }
       />
 

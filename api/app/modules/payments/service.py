@@ -17,7 +17,8 @@ import calendar
 from datetime import date
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import current_period, shift_period, utc_now
@@ -94,31 +95,35 @@ async def ensure_charges(
         )
     )
 
-    created = False
-    for enrollment in enrollments:
-        if enrollment.id in existing:
-            continue
-        db.add(
-            MonthlyCharge(
-                enrollment_id=enrollment.id,
-                year=year,
-                month=month,
-                # Oy o'rtasida qo'shilgan o'quvchi ham to'liq to'laydi —
-                # proratsiya yo'q (talab 12). Chegirma custom_fee orqali.
-                amount_due=enrollment.effective_fee(group),
-            )
-        )
-        created = True
+    rows = [
+        {
+            "enrollment_id": enrollment.id,
+            "year": year,
+            "month": month,
+            # Oy o'rtasida qo'shilgan o'quvchi ham to'liq to'laydi —
+            # proratsiya yo'q (talab 12). Chegirma custom_fee orqali.
+            "amount_due": enrollment.effective_fee(group),
+        }
+        for enrollment in enrollments
+        if enrollment.id not in existing
+    ]
+    if not rows:
+        return
 
-    if created:
-        # Savepoint: ikki so'rov bir vaqtda hisob ochishga urinsa, UNIQUE
-        # buzilishi faqat shu blokni bekor qiladi — so'rovning qolgan
-        # tranzaksiyasi saqlanib qoladi.
-        try:
-            async with db.begin_nested():
-                await db.flush()
-        except IntegrityError:
-            pass
+    # ORM obyekti emas, to'g'ridan-to'g'ri INSERT ... ON CONFLICT DO NOTHING.
+    #
+    # Ikki so'rov bir vaqtda shu oyning hisobini ochishi odatiy hol
+    # (dashboard va to'lovlar sahifasi birga yuklanadi). ORM orqali
+    # qo'shilsa, UNIQUE buzilishi flush'ni yiqitadi va sessiya "pending
+    # rollback" holatiga tushib, so'rovning qolgan qismi ham ishlamay
+    # qoladi. Bu shakl esa konfliktni bazaning o'zida jimgina yutadi.
+    dialect = db.get_bind().dialect.name
+    statement = (
+        pg_insert(MonthlyCharge)
+        if dialect == "postgresql"
+        else sqlite_insert(MonthlyCharge)
+    )
+    await db.execute(statement.values(rows).on_conflict_do_nothing())
 
 
 async def group_month(

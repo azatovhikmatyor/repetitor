@@ -16,6 +16,7 @@ import { GroupDetailPage } from '@/features/groups/group-detail-page'
 import { GroupsPage } from '@/features/groups/groups-page'
 import { GroupPaymentsPage } from '@/features/payments/group-payments-page'
 import { ProfilePage } from '@/features/profile/profile-page'
+import { ExpensesPage } from '@/features/expenses/expenses-page'
 import { DebtorsPage } from '@/features/payments/debtors-page'
 import { ReportsPage } from '@/features/reports/reports-page'
 import { StudentDetailPage } from '@/features/students/student-detail-page'
@@ -99,6 +100,7 @@ export const router = createBrowserRouter([
           { path: 'students', element: <StudentsPage /> },
           { path: 'students/:studentId', element: <StudentDetailPage /> },
           { path: 'debtors', element: <DebtorsPage /> },
+          { path: 'expenses', element: <ExpensesPage /> },
           { path: 'reports', element: <ReportsPage /> },
           { path: 'profile', element: <ProfilePage /> },
           {

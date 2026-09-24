@@ -1,6 +1,7 @@
 import type {
   AttendanceStatus,
   ChargeStatus,
+  ExpenseCategory,
   PaymentMethod,
 } from './api/types'
 
@@ -33,6 +34,19 @@ export const methodLabel: Record<PaymentMethod, string> = {
   other: 'Boshqa',
 }
 
+export const expenseCategoryLabel: Record<ExpenseCategory, string> = {
+  rent: 'Ijara',
+  salary: 'Maosh',
+  utilities: 'Kommunal',
+  marketing: 'Reklama',
+  supplies: 'Jihoz va materiallar',
+  other: 'Boshqa',
+}
+
+export const expenseCategoryOptions = Object.entries(expenseCategoryLabel).map(
+  ([value, label]) => ({ value: value as ExpenseCategory, label }),
+)
+
 export const methodOptions = Object.entries(methodLabel).map(([value, label]) => ({
   value: value as PaymentMethod,
   label,
@@ -44,4 +58,21 @@ export const chargeTone: Record<ChargeStatus, 'paid' | 'partial' | 'unpaid'> = {
   overpaid: 'paid',
   partial: 'partial',
   unpaid: 'unpaid',
+}
+
+/**
+ * Hisob holati — bepul o'quvchini hisobga olib.
+ *
+ * Server uchun 0 so'mlik hisob "to'langan", lekin o'qituvchi uchun bu
+ * "bepul o'qiydi" degani: "To'langan" deb yozilsa chalg'itadi.
+ */
+export function chargeStateLabel(status: ChargeStatus, amountDue: number): string {
+  return amountDue === 0 ? 'Bepul' : chargeLabel[status]
+}
+
+export function chargeStateTone(
+  status: ChargeStatus,
+  amountDue: number,
+): 'paid' | 'partial' | 'unpaid' | 'brand' {
+  return amountDue === 0 ? 'brand' : chargeTone[status]
 }

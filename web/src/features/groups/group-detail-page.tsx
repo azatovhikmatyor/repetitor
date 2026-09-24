@@ -21,6 +21,7 @@ import { formatDate, money } from '@/lib/format'
 import { AddStudentModal } from './add-student-modal'
 import { FeeFields, feePayload, initialFee, type FeeDraft } from './fee-fields'
 import { GroupFormModal } from './group-form-modal'
+import { ImportStudentsModal } from './import-students-modal'
 import { ScheduleModal } from './schedule-modal'
 
 export function GroupDetailPage() {
@@ -36,6 +37,7 @@ export function GroupDetailPage() {
   const [editing, setEditing] = useState(false)
   const [schedule, setSchedule] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [confirm, setConfirm] = useState<'archive' | 'unarchive' | 'delete' | null>(null)
 
   // Qaysi o'quvchi ustida amal bajarilmoqda — modal bitta, qator ko'p.
@@ -197,9 +199,18 @@ export function GroupDetailPage() {
             description={`${data.student_count} ta faol`}
             action={
               !isArchived && (
-                <Button size="sm" onClick={() => setAdding(true)}>
-                  O&rsquo;quvchi qo&rsquo;shish
-                </Button>
+                <span className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setImporting(true)}
+                  >
+                    Ro&rsquo;yxatdan
+                  </Button>
+                  <Button size="sm" onClick={() => setAdding(true)}>
+                    O&rsquo;quvchi qo&rsquo;shish
+                  </Button>
+                </span>
               )
             }
           />
@@ -300,6 +311,13 @@ export function GroupDetailPage() {
         />
       )}
       {schedule && <ScheduleModal groupId={id} onClose={() => setSchedule(false)} />}
+      {importing && (
+        <ImportStudentsModal
+          groupId={id}
+          groupFee={data.monthly_fee}
+          onClose={() => setImporting(false)}
+        />
+      )}
 
       {feeFor && (
         <CustomFeeModal

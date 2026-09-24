@@ -8,6 +8,7 @@ import type {
   AttendanceSession,
   Dashboard,
   Debtors,
+  ExpenseMonth,
   Group,
   GroupSchedule,
   GroupMonth,
@@ -65,6 +66,7 @@ export const qk = {
     ['admin', 'teachers', search, status ?? 'all'] as const,
   pendingTeachers: ['admin', 'teachers', 'pending-count'] as const,
   adminStats: ['admin', 'stats'] as const,
+  expenses: (period: Period) => ['expenses', periodKey(period)] as const,
 }
 
 export const dashboardQuery = () =>
@@ -256,6 +258,18 @@ export const pendingTeachersQuery = () =>
         .get<{ count: number }>('/admin/teachers/pending-count', undefined, signal)
         .then((response) => response.count),
     refetchInterval: 60_000,
+  })
+
+export const expensesQuery = (period: Period) =>
+  queryOptions({
+    queryKey: qk.expenses(period),
+    queryFn: ({ signal }) =>
+      api.get<ExpenseMonth>(
+        '/expenses',
+        { year: period.year, month: period.month },
+        signal,
+      ),
+    placeholderData: keepPreviousData,
   })
 
 export const adminStatsQuery = () =>

@@ -22,6 +22,7 @@ const TEACHER_NAV: NavItem[] = [
   { to: '/', label: 'Bosh sahifa', icon: 'home' },
   { to: '/groups', label: 'Guruhlar', icon: 'groups' },
   { to: '/students', label: "O'quvchilar", icon: 'students' },
+  { to: '/expenses', label: 'Xarajatlar', icon: 'money' },
   { to: '/reports', label: 'Hisobot', icon: 'reports' },
 ]
 

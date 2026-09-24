@@ -5,13 +5,19 @@ o'qish/yozish amali `teacher_id` bo'yicha filtrlanadi va begona resurs
 uchun `NotFoundError` ko'tariladi (talab 12: 403 emas, 404).
 """
 
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.clock import current_period, local_today, utc_now
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import (
+    AppError,
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 from app.core.pagination import PageParams
 from app.core.security import generate_temp_password, hash_password
 from app.modules.attendance.models import AttendanceSession
@@ -663,3 +669,71 @@ async def reset_student_password(
     await revoke_all_tokens(db, student.id)
     await db.flush()
     return temp_password
+
+
+async def import_students(
+    db: AsyncSession,
+    *,
+    teacher_id: int,
+    group_id: int,
+    data: schemas.ImportRequest,
+) -> schemas.ImportResult:
+    """Ro'yxatni bir yo'la qo'shadi.
+
+    Har bir qator alohida savepoint ichida bajariladi: bitta yozuvdagi
+    xato (takroriy telefon, bo'sh ism) qolgan qatorlarni bekor qilmasin.
+    Natijada nima qo'shilgani va nima o'tkazib yuborilgani sabab bilan
+    qaytadi — o'qituvchi faqat muammoli qatorni tuzatadi.
+    """
+    group = await get_group(db, teacher_id=teacher_id, group_id=group_id)
+    ensure_writable(group)
+
+    rows: list[schemas.ImportResultRow] = []
+    added = 0
+
+    for index, row in enumerate(data.rows, start=1):
+        full_name = f"{row.first_name} {row.last_name or ''}".strip()
+        try:
+            async with db.begin_nested():
+                result = await add_student_to_group(
+                    db,
+                    teacher_id=teacher_id,
+                    group_id=group.id,
+                    data=schemas.AddStudentRequest(
+                        first_name=row.first_name,
+                        last_name=row.last_name,
+                        phone=row.phone,
+                        custom_fee=row.custom_fee,
+                        joined_on=data.joined_on,
+                    ),
+                )
+        except AppError as exc:
+            rows.append(
+                schemas.ImportResultRow(
+                    line=index, full_name=full_name, error=exc.message
+                )
+            )
+            continue
+        except PydanticValidationError as exc:
+            # Masalan telefonsiz qator — butun importni to'xtatmaydi.
+            message = exc.errors()[0].get("msg", "Ma'lumot noto'g'ri")
+            rows.append(
+                schemas.ImportResultRow(
+                    line=index,
+                    full_name=full_name,
+                    error=message.removeprefix("Value error, "),
+                )
+            )
+            continue
+
+        added += 1
+        rows.append(
+            schemas.ImportResultRow(
+                line=index,
+                full_name=result.student.student.full_name,
+                student_id=result.student.student.id,
+                temporary_password=result.temporary_password,
+            )
+        )
+
+    return schemas.ImportResult(added=added, failed=len(rows) - added, rows=rows)

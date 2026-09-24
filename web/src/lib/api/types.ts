@@ -176,6 +176,7 @@ export interface DayLesson {
   end_time: string | null
   session_id: number | null
   is_saved: boolean
+  is_cancelled: boolean
 }
 
 export interface AttendanceSession {
@@ -185,6 +186,7 @@ export interface AttendanceSession {
   day_lessons: DayLesson[]
   session_id: number | null
   is_saved: boolean
+  is_cancelled: boolean
   is_editable: boolean
   note: string | null
   students: AttendanceStudent[]
@@ -208,6 +210,7 @@ export interface MonthlyColumn {
   start_time: string | null
   is_planned: boolean
   is_saved: boolean
+  is_cancelled: boolean
 }
 
 export interface MonthlyAttendance {
@@ -261,10 +264,20 @@ export interface StudentGroupAttendance {
   attendance_rate: number
 }
 
+/** O'quvchi kartasidagi davomat tarixi — bitta dars. */
+export interface StudentAttendanceEntry {
+  lesson_date: string
+  start_time: string | null
+  group_id: number
+  group_name: string
+  status: AttendanceStatus
+}
+
 export interface StudentAttendance {
   student_id: number
   full_name: string
   groups: StudentGroupAttendance[]
+  recent: StudentAttendanceEntry[]
 }
 
 // --- To'lovlar ---
@@ -346,6 +359,15 @@ export interface GroupRef {
   group_name: string
 }
 
+/** Bugungi dars — bosh sahifadagi jadval uchun. */
+export interface TodayLesson extends GroupRef {
+  start_time: string | null
+  end_time: string | null
+  is_saved: boolean
+  is_cancelled: boolean
+  student_count: number
+}
+
 export interface DashboardGroupCard extends GroupRef {
   student_count: number
   total_due: number
@@ -362,9 +384,12 @@ export interface Dashboard {
   debt: number
   collection_rate: number
   debtor_count: number
+  expenses: number
+  profit: number
   active_group_count: number
   active_student_count: number
   groups: DashboardGroupCard[]
+  today_lessons: TodayLesson[]
   groups_without_attendance_today: GroupRef[]
 }
 
@@ -384,6 +409,8 @@ export interface MonthlyReport {
   total_due: number
   total_paid: number
   total_debt: number
+  total_expenses: number
+  profit: number
   groups: MonthlyGroupSummary[]
 }
 
@@ -392,6 +419,8 @@ export interface RevenuePoint {
   month: number
   collected: number
   expected: number
+  expenses: number
+  profit: number
 }
 
 export interface GroupAttendanceRate extends GroupRef {
@@ -410,6 +439,63 @@ export interface FrequentAbsentee {
 export interface AttendanceReport {
   groups: GroupAttendanceRate[]
   frequent_absentees: FrequentAbsentee[]
+}
+
+/** Ro'yxatni bir yo'la qo'shish natijasi. */
+export interface ImportResultRow {
+  line: number
+  full_name: string
+  student_id: number | null
+  temporary_password: string | null
+  error: string | null
+}
+
+export interface ImportResult {
+  added: number
+  failed: number
+  rows: ImportResultRow[]
+}
+
+// --- Xarajatlar ---
+
+export type ExpenseCategory =
+  | 'rent'
+  | 'salary'
+  | 'utilities'
+  | 'marketing'
+  | 'supplies'
+  | 'other'
+
+export interface Expense {
+  id: number
+  title: string
+  amount: number
+  category: ExpenseCategory
+  spent_on: string
+  note: string | null
+  is_recurring: boolean
+}
+
+export interface CategoryTotal {
+  category: ExpenseCategory
+  total: number
+  count: number
+}
+
+export interface ExpenseMonth {
+  year: number
+  month: number
+  total: number
+  collected: number
+  /** collected − total. Manfiy bo'lishi mumkin. */
+  profit: number
+  by_category: CategoryTotal[]
+  items: Expense[]
+}
+
+export interface CopyPreviousResult {
+  copied: number
+  skipped: number
 }
 
 // --- Admin ---

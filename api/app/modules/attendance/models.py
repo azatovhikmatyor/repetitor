@@ -2,6 +2,7 @@ import enum
 from datetime import date, time
 
 from sqlalchemy import (
+    Boolean,
     Date,
     ForeignKey,
     Index,
@@ -49,6 +50,9 @@ class AttendanceSession(Base, TimestampMixin):
     slot_id: Mapped[int | None] = mapped_column(
         ForeignKey("group_schedule_slots.id", ondelete="SET NULL")
     )
+    #: Dars o'tkazilmadi (bayram, o'qituvchi kasal). Bunday kun davomat
+    #: foiziga kirmaydi — aks holda hamma "kelmagan" bo'lib qolardi.
+    is_cancelled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     note: Mapped[str | None] = mapped_column(String(255))
 
     records: Mapped[list["AttendanceRecord"]] = relationship(

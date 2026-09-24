@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { dashboardQuery } from '@/lib/api/queries'
 import { useAuth } from '@/lib/auth/auth-context'
 import { QuickPaymentModal } from '@/features/payments/quick-payment-modal'
+import { cn } from '@/lib/cn'
 import { money, monthName, percent } from '@/lib/format'
 
 /**
@@ -58,10 +59,25 @@ export function DashboardPage() {
                 to={data.debt > 0 ? '/debtors' : undefined}
               />
               <Stat
-                label="Yig&rsquo;ilish"
-                value={percent(data.collection_rate)}
-                caption={`${data.active_student_count} o'quvchi · ${data.active_group_count} guruh`}
-                to="/reports"
+                label={data.expenses > 0 ? 'Foyda' : "Yig'ilish"}
+                value={
+                  data.expenses > 0
+                    ? money(data.profit)
+                    : percent(data.collection_rate)
+                }
+                caption={
+                  data.expenses > 0
+                    ? `xarajat ${money(data.expenses)}`
+                    : `${data.active_student_count} o'quvchi · ${data.active_group_count} guruh`
+                }
+                tone={
+                  data.expenses > 0
+                    ? data.profit >= 0
+                      ? 'paid'
+                      : 'unpaid'
+                    : undefined
+                }
+                to={data.expenses > 0 ? '/expenses' : '/reports'}
               />
               <div className="sm:col-span-2 lg:col-span-4">
                 <Progress
@@ -71,23 +87,81 @@ export function DashboardPage() {
             </CardBody>
           </Card>
 
-          {data.groups_without_attendance_today.length > 0 && (
-            <Card className="border-partial/40 bg-partial/5">
-              <CardBody>
-                <p className="mb-3 text-sm font-medium text-slate-800">
-                  Bugun davomat qilinmagan
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {data.groups_without_attendance_today.map((group) => (
-                    <Link key={group.group_id} to={`/groups/${group.group_id}/attendance`}>
-                      <Button variant="secondary" size="sm">
-                        {group.group_name}
-                      </Button>
-                    </Link>
-                  ))}
-                </div>
-              </CardBody>
+          {data.groups.length === 0 ? (
+            <StartHere />
+          ) : data.today_lessons.length > 0 ? (
+            <Card>
+              <CardHeader
+                title="Bugungi darslar"
+                description={`${data.today_lessons.length} ta dars`}
+              />
+              <ul className="divide-y divide-slate-100">
+                {data.today_lessons.map((lesson) => (
+                  <li
+                    key={`${lesson.group_id}-${lesson.start_time ?? ''}`}
+                    className="flex flex-wrap items-center gap-3 px-5 py-3"
+                  >
+                    <span className="tabular w-14 shrink-0 text-sm font-semibold text-slate-800">
+                      {lesson.start_time ? lesson.start_time.slice(0, 5) : '—'}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <Link
+                        to={`/groups/${lesson.group_id}`}
+                        className="block truncate font-medium text-slate-900 hover:text-brand-700 hover:underline"
+                      >
+                        {lesson.group_name}
+                      </Link>
+                      <span className="text-xs text-slate-500">
+                        {lesson.student_count} ta o&rsquo;quvchi
+                        {lesson.end_time && ` · ${lesson.end_time.slice(0, 5)} gacha`}
+                      </span>
+                    </span>
+
+                    {lesson.is_cancelled ? (
+                      <Badge>Dars bo&rsquo;lmadi</Badge>
+                    ) : lesson.is_saved ? (
+                      <Badge tone="paid">Davomat olingan</Badge>
+                    ) : (
+                      <Link
+                        to={`/groups/${lesson.group_id}/attendance${
+                          lesson.start_time
+                            ? `?start_time=${lesson.start_time.slice(0, 5)}`
+                            : ''
+                        }`}
+                      >
+                        <Button size="sm">Davomat olish</Button>
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </Card>
+          ) : (
+            data.groups_without_attendance_today.length > 0 && (
+              <Card className="border-partial/40 bg-partial/5">
+                <CardBody>
+                  <p className="mb-3 text-sm font-medium text-slate-800">
+                    Bugun davomat qilinmagan
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.groups_without_attendance_today.map((group) => (
+                      <Link
+                        key={group.group_id}
+                        to={`/groups/${group.group_id}/attendance`}
+                      >
+                        <Button variant="secondary" size="sm">
+                          {group.group_name}
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Guruh jadvali kiritilsa, bu yerda bugungi darslar vaqti bilan
+                    ko&rsquo;rinadi.
+                  </p>
+                </CardBody>
+              </Card>
+            )
           )}
 
           <Card>
@@ -162,5 +236,70 @@ export function DashboardPage() {
 
       {paying && <QuickPaymentModal onClose={() => setPaying(false)} />}
     </>
+  )
+}
+
+/**
+ * Birinchi kirgan o'qituvchi uchun yo'riqnoma.
+ *
+ * Bo'sh ekran o'rniga nimadan boshlashni aytadi: guruh → jadval →
+ * o'quvchilar → davomat. Guruh paydo bo'lishi bilan bu karta yo'qoladi.
+ */
+function StartHere() {
+  const steps = [
+    {
+      title: 'Guruh yarating',
+      description: 'Nomi va oylik to‘lovi bilan',
+      to: '/groups',
+      action: 'Guruhlarga o‘tish',
+    },
+    {
+      title: 'Dars jadvalini kiriting',
+      description: 'Hafta kunlari va soatlari — bugungi darslar shu yerdan chiqadi',
+    },
+    {
+      title: 'O‘quvchilarni qo‘shing',
+      description: 'Bittalab yoki ro‘yxatni bir yo‘la import qilib',
+    },
+    {
+      title: 'Davomat oling',
+      description: 'Kelmaganlarni belgilaysiz, qolgani avtomatik',
+    },
+  ]
+
+  return (
+    <Card className="border-brand-200 bg-brand-50/40">
+      <CardHeader
+        title="Boshlash uchun to‘rt qadam"
+        description="Har bir qadam keyingisini ochadi"
+      />
+      <CardBody>
+        <ol className="space-y-3">
+          {steps.map((step, index) => (
+            <li key={step.title} className="flex gap-3">
+              <span
+                className={cn(
+                  'grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold',
+                  index === 0
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-white text-slate-400 ring-1 ring-slate-200',
+                )}
+              >
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-slate-900">{step.title}</p>
+                <p className="text-xs text-slate-600">{step.description}</p>
+              </div>
+              {step.to && (
+                <Link to={step.to}>
+                  <Button size="sm">{step.action}</Button>
+                </Link>
+              )}
+            </li>
+          ))}
+        </ol>
+      </CardBody>
+    </Card>
   )
 }

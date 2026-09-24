@@ -4,6 +4,8 @@ import { Link } from 'react-router'
 
 import { PageHeader } from '@/components/layout/app-shell'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Printable, print } from '@/components/ui/printable'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Progress, Stat } from '@/components/ui/stat'
@@ -14,13 +16,16 @@ import {
   monthlyReportQuery,
   revenueTrendQuery,
 } from '@/lib/api/queries'
-import type { RevenuePoint } from '@/lib/api/types'
+import type { AttendanceReport, MonthlyReport, RevenuePoint } from '@/lib/api/types'
+import { useAuth } from '@/lib/auth/auth-context'
+import { downloadCsv } from '@/lib/export'
 import { cn } from '@/lib/cn'
 import { compact, money, monthName, monthShort, percent } from '@/lib/format'
 import { currentPeriod } from '@/lib/period'
 
 export function ReportsPage() {
   const [period, setPeriod] = useState(currentPeriod())
+  const { user } = useAuth()
 
   const monthly = useQuery(monthlyReportQuery(period))
   const trend = useQuery(revenueTrendQuery(12))
@@ -30,8 +35,71 @@ export function ReportsPage() {
     <>
       <PageHeader
         title="Hisobot"
-        actions={<MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              disabled={!monthly.data}
+              onClick={() => {
+                if (!monthly.data) return
+                downloadCsv(
+                  `hisobot-${period.year}-${String(period.month).padStart(2, '0')}`,
+                  [
+                    'Guruh',
+                    "O'quvchi",
+                    'Kutilgan',
+                    "Yig'ilgan",
+                    'Qarz',
+                    "To'lagan",
+                    'Qisman',
+                    "To'lamagan",
+                  ],
+                  [
+                    ...monthly.data.groups.map((group) => [
+                      group.group_name,
+                      group.student_count,
+                      group.total_due,
+                      group.total_paid,
+                      group.total_debt,
+                      group.paid_count,
+                      group.partial_count,
+                      group.unpaid_count,
+                    ]),
+                    [
+                      'JAMI',
+                      '',
+                      monthly.data.total_due,
+                      monthly.data.total_paid,
+                      monthly.data.total_debt,
+                      '',
+                      '',
+                      '',
+                    ],
+                    ['XARAJAT', '', '', monthly.data.total_expenses, '', '', '', ''],
+                    ['FOYDA', '', '', monthly.data.profit, '', '', '', ''],
+                  ],
+                )
+              }}
+            >
+              Excel
+            </Button>
+            <Button variant="secondary" onClick={print}>
+              Chop etish
+            </Button>
+            <MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />
+          </>
+        }
       />
+
+      {monthly.data && (
+        <Printable>
+          <PrintableReport
+            data={monthly.data}
+            attendance={attendance.data}
+            teacherName={user?.full_name ?? ''}
+          />
+        </Printable>
+      )}
 
       <div className="space-y-6">
         <Card>
@@ -46,7 +114,7 @@ export function ReportsPage() {
 
           {monthly.data && (
             <>
-              <CardBody className="grid gap-6 sm:grid-cols-3">
+              <CardBody className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <Stat
                   label="Yig&rsquo;ilgan"
                   value={money(monthly.data.total_paid)}
@@ -57,6 +125,13 @@ export function ReportsPage() {
                   label="Qarz"
                   value={money(monthly.data.total_debt)}
                   tone={monthly.data.total_debt > 0 ? 'unpaid' : undefined}
+                />
+                <Stat
+                  label="Foyda"
+                  value={money(monthly.data.profit)}
+                  caption={`xarajat ${money(monthly.data.total_expenses)}`}
+                  tone={monthly.data.profit >= 0 ? 'paid' : 'unpaid'}
+                  to="/expenses"
                 />
               </CardBody>
 
@@ -232,6 +307,8 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
 
   const totalCollected = points.reduce((sum, point) => sum + point.collected, 0)
   const totalExpected = points.reduce((sum, point) => sum + point.expected, 0)
+  const totalExpenses = points.reduce((sum, point) => sum + point.expenses, 0)
+  const hasExpenses = totalExpenses > 0
 
   return (
     <CardBody className="space-y-4">
@@ -244,12 +321,31 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
           <span className="size-2.5 rounded-sm bg-slate-200" />
           <span className="text-slate-600">Kutilgan</span>
         </span>
+        {hasExpenses && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-0.5 w-3 rounded-sm bg-unpaid/70" />
+            <span className="text-slate-600">Xarajat</span>
+          </span>
+        )}
         <span className="ml-auto text-slate-500">
           {withData.length} oyda{' '}
           <span className="tabular font-medium text-slate-800">
             {money(totalCollected)}
           </span>{' '}
           / {money(totalExpected)} so&rsquo;m
+          {hasExpenses && (
+            <>
+              {' \u00b7 foyda '}
+              <span
+                className={cn(
+                  'tabular font-medium',
+                  totalCollected - totalExpenses >= 0 ? 'text-paid' : 'text-unpaid',
+                )}
+              >
+                {money(totalCollected - totalExpenses)}
+              </span>
+            </>
+          )}
         </span>
       </div>
 
@@ -308,6 +404,13 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
                     )}
                     style={{ height: `${(point.collected / max) * 100}%` }}
                   />
+                  {/* Xarajat chizig'i — shu oyda qancha ketgani. */}
+                  {point.expenses > 0 && (
+                    <div
+                      className="absolute inset-x-0 border-t-2 border-dashed border-unpaid/70"
+                      style={{ bottom: `${(point.expenses / max) * 100}%` }}
+                    />
+                  )}
                 </div>
 
                 <span className="truncate text-[10px] text-slate-500">
@@ -322,5 +425,103 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
         </div>
       </div>
     </CardBody>
+  )
+}
+
+/**
+ * Chop etiladigan oylik hisobot.
+ *
+ * Ekrandagi kartalar emas, buxgalteriyaga beriladigan bitta varaq:
+ * jadval, jami qatori va imzo joyi.
+ */
+function PrintableReport({
+  data,
+  attendance,
+  teacherName,
+}: {
+  data: MonthlyReport
+  attendance: AttendanceReport | undefined
+  teacherName: string
+}) {
+  return (
+    <div>
+      <div className="flex items-start justify-between border-b border-slate-300 pb-3">
+        <div>
+          <p className="text-lg font-semibold">Oylik hisobot</p>
+          <p className="text-sm text-slate-600">
+            {monthName(data.month)} {data.year}
+          </p>
+        </div>
+        <p className="text-sm text-slate-600">{teacherName}</p>
+      </div>
+
+      <table className="mt-4 w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-slate-300 text-left">
+            <th className="py-1.5">Guruh</th>
+            <th className="py-1.5 text-right">O&rsquo;quvchi</th>
+            <th className="py-1.5 text-right">Kutilgan</th>
+            <th className="py-1.5 text-right">Yig&rsquo;ilgan</th>
+            <th className="py-1.5 text-right">Qarz</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.groups.map((group) => (
+            <tr key={group.group_id} className="border-b border-slate-200">
+              <td className="py-1.5">{group.group_name}</td>
+              <td className="py-1.5 text-right">{group.student_count}</td>
+              <td className="py-1.5 text-right">{money(group.total_due)}</td>
+              <td className="py-1.5 text-right">{money(group.total_paid)}</td>
+              <td className="py-1.5 text-right">{money(group.total_debt)}</td>
+            </tr>
+          ))}
+          <tr className="font-semibold">
+            <td className="py-2">JAMI</td>
+            <td />
+            <td className="py-2 text-right">{money(data.total_due)}</td>
+            <td className="py-2 text-right">{money(data.total_paid)}</td>
+            <td className="py-2 text-right">{money(data.total_debt)}</td>
+          </tr>
+          <tr>
+            <td className="py-1.5" colSpan={3}>
+              Xarajat
+            </td>
+            <td className="py-1.5 text-right">{money(data.total_expenses)}</td>
+            <td />
+          </tr>
+          <tr className="border-t border-slate-300 font-semibold">
+            <td className="py-2" colSpan={3}>
+              Foyda
+            </td>
+            <td className="py-2 text-right">{money(data.profit)}</td>
+            <td />
+          </tr>
+        </tbody>
+      </table>
+
+      {attendance && attendance.groups.length > 0 && (
+        <>
+          <p className="mt-6 mb-2 font-semibold">Davomat</p>
+          <table className="w-full border-collapse text-sm">
+            <tbody>
+              {attendance.groups.map((group) => (
+                <tr key={group.group_id} className="border-b border-slate-200">
+                  <td className="py-1.5">{group.group_name}</td>
+                  <td className="py-1.5 text-right">{group.session_count} dars</td>
+                  <td className="py-1.5 text-right">
+                    {percent(group.attendance_rate)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      <div className="mt-10 flex justify-between text-sm text-slate-600">
+        <span>Sana: ____________</span>
+        <span>Imzo: ____________</span>
+      </div>
+    </div>
   )
 }

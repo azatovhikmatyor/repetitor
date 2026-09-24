@@ -40,3 +40,32 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Chop etish.
+ *
+ * Chop etiladigan mazmun (kvitansiya, hisobot) `body` ostiga alohida
+ * `.print-root` bo'lib qo'yiladi va ekranda ko'rinmaydi. Chop etishda
+ * esa aksincha: ilova yashirinadi, faqat o'sha blok chiqadi. Shu sababli
+ * server tomonda PDF kutubxonasi kerak emas — brauzerning "Chop etish →
+ * PDF saqlash" imkoniyati yetarli.
+ */
+.print-root {
+  display: none;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  .print-root {
+    display: block !important;
+    padding: 24px;
+    color: black;
+  }
+}

@@ -135,18 +135,19 @@ tekshiradi.
 `must_change_password=true` bo'lsa `/auth/me` va parol almashtirishdan
 boshqa hamma narsa yopiq.
 
-## Endpointlar (58 ta)
+## Endpointlar (64 ta)
 
 | Guruh | Endpointlar |
 |---|---|
 | auth | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET·PATCH /auth/me`, `POST·DELETE /auth/me/avatar`, `POST /auth/password/{forgot,reset,change}` |
 | groups | `GET·POST /groups`, `GET·PATCH·DELETE /groups/{id}`, `POST /groups/{id}/{archive,unarchive}` |
 | jadval | `GET·PUT /groups/{id}/schedule`, `GET /groups/{id}/schedule/lessons` |
-| guruhdagi o'quvchilar | `GET·POST /groups/{id}/students`, `PATCH·DELETE /groups/{id}/students/{sid}` |
+| guruhdagi o'quvchilar | `GET·POST /groups/{id}/students`, `POST /groups/{id}/students/import`, `PATCH·DELETE /groups/{id}/students/{sid}` |
 | students | `GET /students`, `GET·PATCH /students/{id}`, `POST /students/{id}/reset-password`, `POST·DELETE /students/{id}/avatar` |
 | attendance | `GET·PUT /groups/{id}/attendance`, `GET /groups/{id}/attendance/monthly`, `GET /students/{id}/attendance` |
 | payments | `GET·POST /groups/{id}/payments`, `GET /groups/{id}/payments/history`, `GET /payments/{id}`, `POST /payments/{id}/reverse`, `GET /students/{id}/payments` |
 | reports | `GET /reports/{dashboard,monthly,revenue-trend,attendance,debtors}` |
+| xarajatlar | `GET·POST /expenses`, `PATCH·DELETE /expenses/{id}`, `POST /expenses/copy-previous` |
 | admin | `GET /admin/teachers`, `GET /admin/teachers/pending-count`, `POST /admin/teachers/{id}/{approve,block,unblock,reset-password}`, `GET /admin/teachers/{id}/{delete-preview,export}`, `DELETE /admin/teachers/{id}`, `GET /admin/stats` |
 
 ### O'quvchi maydonlari
@@ -194,6 +195,35 @@ kiritilmagan guruhlar).
 qilinadigan qisqa matn (`Du/Chor 08:00`), ro'yxat so'rovlarida slotlarni
 yuklamaslik uchun.
 
+### Xarajat va foyda
+
+`Expense` yozuvlari guruhga bog'lanmaydi — ijara butun markazga tegishli,
+uni guruhlarga bo'lish sun'iy bo'lardi. Toifalar ataylab oltita: ro'yxat
+uzun bo'lsa hech kim to'ldirmaydi.
+
+```
+foyda = shu oy uchun YIG'ILGAN to'lov − shu oydagi xarajat
+```
+
+Kutilgandan emas, yig'ilgandan: qarz hali pul emas. To'lov qaysi oyga
+tegishli ekani `MonthlyCharge` da yozilgan, shuning uchun avgust uchun
+sentabrda tushgan pul avgust foydasiga kiradi.
+
+`is_recurring` — ijara va kommunal har oy takrorlanadi.
+`POST /expenses/copy-previous` ularni keyingi oyga ko'chiradi va nomi
+bo'yicha takrorlanmaydi.
+
+To'lovdan farqli, xarajat **o'chiriladi**: to'lov pul harakatining dalili,
+xarajat esa o'qituvchining o'z qaydi.
+
+### Hisob ochish va parallel so'rovlar
+
+`ensure_charges` ORM orqali emas, `INSERT ... ON CONFLICT DO NOTHING`
+bilan yozadi. Sabab: dashboard va to'lovlar sahifasi bir vaqtda ochilsa,
+ikkala so'rov ham shu oyning hisobini ochishga urinadi. ORM'da UNIQUE
+buzilishi flush'ni yiqitadi va sessiya "pending rollback" holatiga
+tushib, so'rovning qolgan qismi ham ishlamay qoladi.
+
 ### Alohida narx (chegirma va bepul o'qish)
 
 Har bir `Enrollment` o'z narxiga ega bo'lishi mumkin:
@@ -216,6 +246,15 @@ Narx o'zgarganda o'tgan oylar tegilmaydi (`amount_due` muzlatilgan). Joriy
 oy esa `apply_current_month: true` bilan yangilanadi — **agar shu oyda
 hali to'lov bo'lmagan bo'lsa**. Kelishuv odatda oy boshida bo'ladi,
 shuning uchun bu standart holat.
+
+### Dars bo'lmagan kun
+
+`AttendanceSession.is_cancelled` — bayram yoki o'qituvchi kasal bo'lgan
+kun. Bunday sessiyaning yozuvlari o'chiriladi va u **hech qayerda**
+hisobga olinmaydi: davomat foizi, oylik jadval, hisobot va admin
+statistikasi uni chetlab o'tadi. Aks holda o'qituvchi hammani "kelmagan"
+deb belgilashga majbur bo'lardi va o'quvchilar "eng ko'p qoldiradiganlar"
+ro'yxatiga tushardi.
 
 ### Davomat oqimi
 

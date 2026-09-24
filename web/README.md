@@ -85,6 +85,7 @@ src/
     students/        o'quvchilar ro'yxati, kartasi va tahrirlash oynasi
     attendance/      kunlik davomat, oylik jadval (ustun = dars, sana emas)
     payments/        oylik holat, to'lov kiritish, bekor qilish, qarzdorlar
+    expenses/        xarajatlar va foyda
     reports/         oylik hisobot, daromad tendentsiyasi, davomat
     admin/           platforma statistikasi, o'qituvchilar
     profile/         profil
@@ -137,6 +138,30 @@ o'qituvchining daromadi shaxsiy (talab 9), backend ham uni bermaydi.
 nechta dars qo'shiladi, har biri o'z vaqti bilan. Saqlash eski jadvalni
 o'chirmaydi, "qaysi sanadan" ko'rsatilgan kundan yangi versiya ochadi;
 o'sha oynada o'zgarishlar tarixi ham ko'rinadi.
+
+**Xarajatlar** — alohida sahifa: yuqorida uchta raqam (yig'ilgan −
+xarajat = foyda), toifalar kesimi va yozuvlar. Har oy takrorlanadigan
+xarajat ("Har oy" yorlig'i) keyingi oyga bir bosishda ko'chiriladi.
+Foyda bosh sahifada ham, oylik hisobotda ham, daromad grafigida ham
+ko'rinadi (grafikda xarajat punktir chiziq bo'lib tushadi).
+
+**Bosh sahifa** — yangi o'qituvchiga to'rt qadamli yo'riqnoma (guruh →
+jadval → o'quvchilar → davomat), guruh paydo bo'lgach uning o'rniga
+**bugungi darslar** vaqti bilan va "Davomat olish" tugmasi bilan
+chiqadi.
+
+**Dars bo'lmadi** — davomat sahifasidagi tugma. Kun "o'tkazilmagan" deb
+belgilanadi, yozuvlar o'chadi va u davomat foiziga kirmaydi. Qaytarish
+ham bir bosishda.
+
+**Chop etish va eksport** — to'lov kvitansiyasi va oylik hisobot
+brauzerning "Chop etish → PDF" imkoniyati orqali (`.print-root` portali,
+`@media print`), ro'yxatlar esa CSV bo'lib yuklanadi (`;` ajratgichi va
+BOM — Excel o'zbekcha harflarni to'g'ri ochishi uchun).
+
+**Ro'yxatdan qo'shish** — Excel'dan nusxa ko'chirilgan matn qatorlarga
+ajratiladi, yuborishdan oldin "shunday tushunildi" jadvali ko'rsatiladi.
+Xatoli qator qolganlarini to'xtatmaydi.
 
 **Davomat** — hamma standart "Bor" holatida keladi, o'qituvchi
 kelmaganlarni belgilaydi va bir marta saqlaydi. "Hammasi: Bor / Yo'q"

@@ -10,6 +10,7 @@ from app.modules.attendance.models import (  # noqa: F401
     AttendanceRecord,
     AttendanceSession,
 )
+from app.modules.expenses.models import Expense  # noqa: F401
 from app.modules.groups.models import Enrollment, Group  # noqa: F401
 from app.modules.groups.schedule_models import (  # noqa: F401
     ScheduleSlot,
@@ -34,5 +35,6 @@ __all__ = [
     "AttendanceSession",
     "AttendanceRecord",
     "MonthlyCharge",
+    "Expense",
     "Payment",
 ]

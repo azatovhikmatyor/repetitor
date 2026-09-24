@@ -20,10 +20,10 @@ import {
   studentPaymentsQuery,
   studentQuery,
 } from '@/lib/api/queries'
-import type { StudentDetail } from '@/lib/api/types'
+import type { StudentAttendanceEntry, StudentDetail } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
 import { formatDate, money, monthName, percent } from '@/lib/format'
-import { chargeLabel, chargeTone } from '@/lib/labels'
+import { attendanceLabel, chargeStateLabel, chargeStateTone } from '@/lib/labels'
 
 import { StudentEditModal } from './student-edit-modal'
 
@@ -245,7 +245,14 @@ export function StudentDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader title="Davomat" />
+              <CardHeader
+                title="Davomat"
+                description={
+                  attendance.data && attendance.data.recent.length > 0
+                    ? 'Oxirgi darslar pastda'
+                    : undefined
+                }
+              />
               {attendance.isPending && <Loading rows={2} />}
               {attendance.data?.groups.length === 0 && (
                 <EmptyState title="Hali davomat yozilmagan" />
@@ -273,6 +280,10 @@ export function StudentDetailPage() {
                       </p>
                     </div>
                   ))}
+
+                  {attendance.data.recent.length > 0 && (
+                    <AttendanceHistory entries={attendance.data.recent} />
+                  )}
                 </CardBody>
               )}
             </Card>
@@ -366,8 +377,8 @@ export function StudentDetailPage() {
                       key: 'status',
                       header: 'Holat',
                       cell: (charge) => (
-                        <Badge tone={chargeTone[charge.status]}>
-                          {chargeLabel[charge.status]}
+                        <Badge tone={chargeStateTone(charge.status, charge.amount_due)}>
+                          {chargeStateLabel(charge.status, charge.amount_due)}
                         </Badge>
                       ),
                     },
@@ -420,6 +431,72 @@ export function StudentDetailPage() {
       )}
     </>
   )
+}
+
+/**
+ * Oxirgi darslar — sana bo'yicha.
+ *
+ * "Qaysi kunlari kelmagan?" degan savolga javob: umumiy foiz buni
+ * aytmaydi. Standart holatda faqat kelmagan kunlar ko'rinadi, chunki
+ * odatda shular qiziqtiradi.
+ */
+function AttendanceHistory({ entries }: { entries: StudentAttendanceEntry[] }) {
+  const [all, setAll] = useState(false)
+  const missed = entries.filter((entry) => entry.status !== 'present')
+  const shown = (all ? entries : missed).slice(0, 12)
+
+  return (
+    <div className="border-t border-slate-100 pt-4">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-medium text-slate-700">
+          {all ? 'Oxirgi darslar' : "Kelmagan kunlari"}
+        </p>
+        <Button variant="ghost" size="sm" onClick={() => setAll((value) => !value)}>
+          {all ? 'Faqat kelmaganlari' : 'Hammasi'}
+        </Button>
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          Bitta ham dars qoldirmagan
+        </p>
+      ) : (
+        <ul className="space-y-1">
+          {shown.map((entry) => (
+            <li
+              key={`${entry.lesson_date}-${entry.start_time ?? ''}-${entry.group_id}`}
+              className="flex items-center justify-between gap-2 text-sm"
+            >
+              <span className="text-slate-600">
+                {formatDate(entry.lesson_date)}
+                {entry.start_time && (
+                  <span className="ml-1 text-xs text-slate-400">
+                    {entry.start_time.slice(0, 5)}
+                  </span>
+                )}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-xs text-slate-400">
+                {entry.group_name}
+              </span>
+              <Badge tone={ATTENDANCE_TONE[entry.status]}>
+                {attendanceLabel[entry.status]}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+const ATTENDANCE_TONE: Record<
+  StudentAttendanceEntry['status'],
+  'paid' | 'unpaid' | 'partial' | 'neutral'
+> = {
+  present: 'paid',
+  absent: 'unpaid',
+  late: 'partial',
+  excused: 'neutral',
 }
 
 function Metric({

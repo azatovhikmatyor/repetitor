@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { PageHeader } from '@/components/layout/app-shell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Icon } from '@/components/ui/icon'
+import { ConfirmModal } from '@/components/ui/modal'
 import { ErrorState, Loading } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
@@ -29,9 +30,12 @@ export function AttendancePage() {
 
   const today = isoDate(new Date())
   const [date, setDate] = useState(today)
-  // Kunda bir nechta dars bo'lsa — qaysi biri tanlangani. null bo'lsa
-  // server kunning birinchi darsini beradi.
-  const [lesson, setLesson] = useState<string | null>(null)
+  // Bosh sahifadan "davomat olish" bosilganda qaysi dars ekani manzilda
+  // keladi: `?start_time=18:00`.
+  const [params] = useSearchParams()
+  const [lesson, setLesson] = useState<string | null>(
+    params.get('start_time'),
+  )
 
   const session = useQuery(attendanceQuery(id, date, lesson))
   // Qaysi guruh ekani sarlavhada ko'rinib tursin.
@@ -92,7 +96,11 @@ export function AttendancePage() {
                     )}
                   >
                     {value ? value.slice(0, 5) : 'Jadvalsiz'}
-                    {item.is_saved && <span className="ml-1">&#10003;</span>}
+                    {item.is_cancelled ? (
+                      <span className="ml-1">&times;</span>
+                    ) : (
+                      item.is_saved && <span className="ml-1">&#10003;</span>
+                    )}
                   </button>
                 )
               })}
@@ -162,6 +170,7 @@ function AttendanceEditor({
    */
   const isPast = date !== isoDate(new Date())
   const [unlocked, setUnlocked] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
   const editable = session.is_editable && (!isPast || unlocked)
 
   const students = session.students.map((student) => ({
@@ -176,22 +185,22 @@ function AttendanceEditor({
     )
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (options: { cancelled?: boolean } = {}) =>
       api.put<AttendanceSession>(`/groups/${groupId}/attendance`, {
         session_date: date,
         // Qaysi dars ekani — kunda bir nechtasi bo'lsa muhim.
         start_time: session.start_time,
+        is_cancelled: options.cancelled ?? false,
         // Faqat "Bor" dan farq qiladiganlar yuboriladi: 30 kishilik guruhda
         // 5 ta kelmagan bo'lsa, so'rovda 5 ta element bo'ladi.
         records: students
           .filter((student) => student.status !== 'present')
           .map((student) => ({ student_id: student.student_id, status: student.status })),
       }),
-    onSuccess: async (result) => {
+    onSuccess: async (result: AttendanceSession) => {
       // Kesh kalitida tanlangan vaqt bor, javobda esa server aniqlagan
       // vaqt — mos kelmasligi mumkin, shuning uchun shu kunning barcha
       // so'rovlari yangilanadi.
-      void result
       await queryClient.invalidateQueries({
         queryKey: ['group', groupId, 'attendance', date],
       })
@@ -202,7 +211,12 @@ function AttendanceEditor({
       setSaved(true)
       // O'tgan kun yana qulflanadi — keyingi tasodifiy bosishdan himoya.
       setUnlocked(false)
-      toast.success('Davomat saqlandi')
+      setConfirmCancel(false)
+      toast.success(
+        result.is_cancelled
+          ? "Dars bo'lmagan deb belgilandi"
+          : 'Davomat saqlandi',
+      )
     },
     onError: (error) => toast.error(error),
   })
@@ -220,6 +234,35 @@ function AttendanceEditor({
   const nextGroup = dashboard.data?.groups_without_attendance_today.find(
     (group) => group.group_id !== groupId,
   )
+
+  if (session.is_cancelled) {
+    return (
+      <>
+        <CardBody className="flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+              <Icon name="close" className="size-4 text-slate-400" />
+              Dars o&rsquo;tkazilmagan
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {session.note
+                ? session.note
+                : 'Bu kun davomat foiziga kirmaydi'}
+            </p>
+          </div>
+          {session.is_editable && (
+            <Button
+              variant="secondary"
+              loading={save.isPending}
+              onClick={() => save.mutate({ cancelled: false })}
+            >
+              Darsni qaytarish
+            </Button>
+          )}
+        </CardBody>
+      </>
+    )
+  }
 
   return (
     <>
@@ -298,6 +341,16 @@ function AttendanceEditor({
         ))}
       </ul>
 
+      <ConfirmModal
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={() => save.mutate({ cancelled: true })}
+        loading={save.isPending}
+        title="Dars bo&rsquo;lmadi"
+        message="Bu kun davomat foiziga kirmaydi va hech kim «kelmagan» deb hisoblanmaydi. Kiritilgan belgilar o'chiriladi."
+        confirmLabel="Belgilash"
+      />
+
       {/* Telefonda pastga scroll qilish shart emas — tugma ekranga yopishadi. */}
       <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 bg-white/95 px-5 py-3 backdrop-blur">
         {!session.is_editable ? (
@@ -321,6 +374,12 @@ function AttendanceEditor({
                 Keyingi: {nextGroup.group_name}
               </Button>
             )}
+            <Button
+              variant="danger-ghost"
+              onClick={() => setConfirmCancel(true)}
+            >
+              Dars bo&rsquo;lmadi
+            </Button>
             {isPast && (
               <Button
                 variant="ghost"
@@ -333,7 +392,7 @@ function AttendanceEditor({
                 Bekor qilish
               </Button>
             )}
-            <Button loading={save.isPending} onClick={() => save.mutate()}>
+            <Button loading={save.isPending} onClick={() => save.mutate({})}>
               Saqlash
             </Button>
           </>

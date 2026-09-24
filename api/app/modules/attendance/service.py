@@ -12,7 +12,7 @@ bilan aniqlanadi.
 import calendar
 from datetime import date, time
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import local_today
@@ -111,13 +111,17 @@ async def _day_lessons(
                 end_time=lesson.end_time,
                 session_id=session.id if session else None,
                 is_saved=session is not None,
+                is_cancelled=bool(session and session.is_cancelled),
             )
         )
 
     for start_time, session in by_time.items():
         lessons.append(
             schemas.DayLesson(
-                start_time=start_time, session_id=session.id, is_saved=True
+                start_time=start_time,
+                session_id=session.id,
+                is_saved=True,
+                is_cancelled=session.is_cancelled,
             )
         )
 
@@ -188,6 +192,7 @@ async def get_session(
         day_lessons=lessons,
         session_id=session.id if session else None,
         is_saved=session is not None,
+        is_cancelled=bool(session and session.is_cancelled),
         is_editable=not group.is_archived and session_date <= local_today(),
         note=session.note if session else None,
         students=students,
@@ -208,7 +213,7 @@ async def save_session(
     session_date = _resolve_date(data.session_date)
 
     roster = await _active_roster(db, group.id, session_date)
-    if not roster:
+    if not roster and not data.is_cancelled:
         raise ValidationError("Bu sanada guruhda o'quvchi yo'q")
 
     enrollment_by_student = {student.id: enr.id for enr, student in roster}
@@ -246,6 +251,22 @@ async def save_session(
         await db.flush()
     elif data.note is not None:
         session.note = data.note
+
+    session.is_cancelled = data.is_cancelled
+    if data.is_cancelled:
+        # Dars bo'lmagan kunda "kim kelgan" degan savol yo'q — yozuvlar
+        # o'chiriladi va bu kun foizga kirmaydi.
+        await db.execute(
+            delete(AttendanceRecord).where(AttendanceRecord.session_id == session.id)
+        )
+        await db.flush()
+        return await get_session(
+            db,
+            teacher_id=teacher_id,
+            group_id=group.id,
+            on_date=session_date,
+            start_time=start_time,
+        )
 
     existing = {
         record.enrollment_id: record
@@ -308,6 +329,28 @@ async def monthly_report(
             is_planned=True,
             is_saved=False,
         )
+
+    cancelled = await db.execute(
+        select(AttendanceSession.session_date, AttendanceSession.start_time).where(
+            AttendanceSession.group_id == group.id,
+            AttendanceSession.session_date.between(first_day, last_day),
+            AttendanceSession.is_cancelled.is_(True),
+        )
+    )
+    for session_date, start_time in cancelled.all():
+        key = column_key(session_date, start_time)
+        column = columns.get(key)
+        if column is None:
+            columns[key] = schemas.MonthlyColumn(
+                key=key,
+                lesson_date=session_date,
+                start_time=start_time,
+                is_planned=False,
+                is_saved=False,
+                is_cancelled=True,
+            )
+        else:
+            column.is_cancelled = True
 
     rows = await db.execute(
         select(
@@ -395,7 +438,13 @@ async def student_summary(
         )
         .join(Enrollment, Enrollment.group_id == Group.id)
         .join(AttendanceRecord, AttendanceRecord.enrollment_id == Enrollment.id)
-        .where(Enrollment.student_id == student.id, Group.teacher_id == teacher_id)
+        .join(AttendanceSession, AttendanceSession.id == AttendanceRecord.session_id)
+        .where(
+            Enrollment.student_id == student.id,
+            Group.teacher_id == teacher_id,
+            # Bo'lmagan dars davomat foiziga kirmaydi.
+            AttendanceSession.is_cancelled.is_(False),
+        )
         .group_by(Group.id, Group.name, AttendanceRecord.status)
         .order_by(Group.name)
     )
@@ -434,8 +483,48 @@ async def student_summary(
             else 0.0
         )
 
+    # Oxirgi darslar: "qaysi kunlari kelmagan?" degan savolga javob.
+    recent_rows = await db.execute(
+        select(
+            AttendanceSession.session_date,
+            AttendanceSession.start_time,
+            Group.id,
+            Group.name,
+            AttendanceRecord.status,
+        )
+        .join(AttendanceRecord, AttendanceRecord.session_id == AttendanceSession.id)
+        .join(Enrollment, Enrollment.id == AttendanceRecord.enrollment_id)
+        .join(Group, Group.id == AttendanceSession.group_id)
+        .where(
+            Enrollment.student_id == student.id,
+            Group.teacher_id == teacher_id,
+            AttendanceSession.is_cancelled.is_(False),
+        )
+        .order_by(
+            AttendanceSession.session_date.desc(),
+            AttendanceSession.start_time.desc(),
+        )
+        .limit(60)
+    )
+
     return schemas.StudentAttendanceOut(
         student_id=student.id,
         full_name=student.full_name,
         groups=sorted(groups.values(), key=lambda g: g.group_name),
+        recent=[
+            schemas.StudentAttendanceEntry(
+                lesson_date=session_date,
+                start_time=start_time,
+                group_id=group_id,
+                group_name=group_name,
+                status=status,
+            )
+            for (
+                session_date,
+                start_time,
+                group_id,
+                group_name,
+                status,
+            ) in recent_rows.all()
+        ],
     )

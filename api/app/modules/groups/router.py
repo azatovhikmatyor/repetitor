@@ -255,6 +255,27 @@ async def remove_student(
 # ------------------------------------------------ o'qituvchining o'quvchilari
 
 
+@router.post(
+    "/{group_id}/students/import",
+    response_model=schemas.ImportResult,
+    summary="Ro'yxatni bir yo'la qo'shish",
+)
+async def import_students(
+    group_id: int,
+    data: schemas.ImportRequest,
+    db: DbSession,
+    teacher: CurrentTeacher,
+) -> schemas.ImportResult:
+    """20 kishilik guruhni bittalab kiritmaslik uchun.
+
+    Xatoli qator qolganlarini to'xtatmaydi: natijada har bir qator
+    bo'yicha "qo'shildi" yoki xato sababi qaytadi.
+    """
+    return await service.import_students(
+        db, teacher_id=teacher.id, group_id=group_id, data=data
+    )
+
+
 @students_router.get(
     "", response_model=Page[StudentListItem], summary="Barcha o'quvchilarim"
 )

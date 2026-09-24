@@ -4,11 +4,13 @@ import { useParams } from 'react-router'
 
 import { PageHeader } from '@/components/layout/app-shell'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { attendanceMonthlyQuery, groupQuery } from '@/lib/api/queries'
 import type { AttendanceStatus, MonthlyColumn } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { downloadCsv, slug } from '@/lib/export'
 import { percent } from '@/lib/format'
 import { currentPeriod } from '@/lib/period'
 
@@ -33,7 +35,43 @@ export function MonthlyAttendancePage() {
       <PageHeader
         title={group.data ? `${group.data.name} — oylik davomat` : 'Oylik davomat'}
         back={{ to: `/groups/${id}/attendance`, label: 'Davomat' }}
-        actions={<MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              disabled={!data || data.columns.length === 0}
+              onClick={() => {
+                if (!data) return
+                downloadCsv(
+                  `${slug(group.data?.name ?? 'davomat')}-${period.year}-${String(
+                    period.month,
+                  ).padStart(2, '0')}`,
+                  [
+                    "O'quvchi",
+                    ...data.columns.map((column) =>
+                      column.start_time
+                        ? `${column.lesson_date} ${column.start_time.slice(0, 5)}`
+                        : column.lesson_date,
+                    ),
+                    'Foiz',
+                  ],
+                  data.students.map((row) => [
+                    row.full_name,
+                    ...data.columns.map((column) =>
+                      column.is_cancelled
+                        ? 'dars yo‘q'
+                        : (MARK_TEXT[row.marks[column.key]] ?? ''),
+                    ),
+                    `${row.attendance_rate}%`,
+                  ]),
+                )
+              }}
+            >
+              Excel
+            </Button>
+            <MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />
+          </>
+        }
       />
 
       <Card>
@@ -62,7 +100,11 @@ export function MonthlyAttendancePage() {
                       title={columnTitle(column)}
                       className={cn(
                         'w-10 border-b border-slate-200 bg-slate-50 px-1 py-2.5 text-center text-xs font-medium',
-                        column.is_saved ? 'text-slate-500' : 'text-slate-300',
+                        column.is_cancelled
+                          ? 'text-slate-400 line-through'
+                          : column.is_saved
+                            ? 'text-slate-500'
+                            : 'text-slate-300',
                       )}
                     >
                       <span className="block">
@@ -91,7 +133,16 @@ export function MonthlyAttendancePage() {
                         key={column.key}
                         className="border-b border-slate-100 px-1 py-2 text-center"
                       >
-                        <Mark status={row.marks[column.key]} />
+                        {column.is_cancelled ? (
+                          <span
+                            title="Dars bo&rsquo;lmagan"
+                            className="text-xs text-slate-300"
+                          >
+                            &times;
+                          </span>
+                        ) : (
+                          <Mark status={row.marks[column.key]} />
+                        )}
                       </td>
                     ))}
                     <td
@@ -117,9 +168,21 @@ export function MonthlyAttendancePage() {
   )
 }
 
+/** CSV uchun: belgilar o'rniga matn. */
+const MARK_TEXT: Partial<Record<AttendanceStatus, string>> = {
+  present: 'bor',
+  absent: "yo'q",
+  late: 'kech',
+  excused: 'sababli',
+}
+
 function columnTitle(column: MonthlyColumn): string {
   const time = column.start_time ? ` ${column.start_time.slice(0, 5)}` : ''
-  const state = column.is_saved ? '' : ' — davomat kiritilmagan'
+  const state = column.is_cancelled
+    ? " — dars bo'lmagan"
+    : column.is_saved
+      ? ''
+      : ' — davomat kiritilmagan'
   return `${column.lesson_date}${time}${state}`
 }
 

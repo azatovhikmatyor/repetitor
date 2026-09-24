@@ -260,3 +260,38 @@ async def test_dashboard_and_monthly_report_agree(
     ).json()
     assert len(trend["points"]) == 3
     assert trend["points"][-1]["collected"] == 200_000
+
+
+async def test_charge_conflict_does_not_poison_the_session(
+    client: AsyncClient, admin_headers: dict
+) -> None:
+    """Ikki so'rov bir vaqtda hisob ochsa, so'rov yiqilmasligi kerak.
+
+    Regressiya: konflikt savepoint ichida ushlangan, lekin obyektlar
+    sessiyada qolib ketardi va keyingi avtoflush butun tranzaksiyani
+    buzardi (PendingRollbackError).
+    """
+    import asyncio
+
+    headers, group, _ = await _setup(client, admin_headers)
+
+    first, second = await asyncio.gather(
+        client.get(
+            f"/groups/{group['id']}/payments",
+            params={"year": YEAR, "month": MONTH},
+            headers=headers,
+        ),
+        client.get("/reports/dashboard", headers=headers),
+    )
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+
+    # Keyingi so'rovlar ham ishlaydi va hisob bitta.
+    again = await client.get(
+        f"/groups/{group['id']}/payments",
+        params={"year": YEAR, "month": MONTH},
+        headers=headers,
+    )
+    assert again.status_code == 200
+    assert len(again.json()["students"]) == 1

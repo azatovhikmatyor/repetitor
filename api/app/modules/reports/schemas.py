@@ -1,3 +1,5 @@
+from datetime import time
+
 from pydantic import BaseModel, Field
 
 
@@ -14,6 +16,16 @@ class DashboardGroupCard(GroupRef):
     attendance_taken_today: bool
 
 
+class TodayLesson(GroupRef):
+    """Bugun jadval bo'yicha bo'ladigan dars."""
+
+    start_time: time | None = None
+    end_time: time | None = None
+    is_saved: bool = Field(description="Davomat kiritilgan")
+    is_cancelled: bool = False
+    student_count: int = 0
+
+
 class DashboardOut(BaseModel):
     """Bosh ekran — telefonda ochilishi bilan ko'rinadigan raqamlar."""
 
@@ -24,9 +36,15 @@ class DashboardOut(BaseModel):
     debt: int = Field(description="expected - collected (manfiy bo'lmaydi)")
     collection_rate: float = Field(description="Yig'ilish foizi, 0-100")
     debtor_count: int = Field(description="To'liq to'lamagan o'quvchilar soni")
+    expenses: int = Field(default=0, description="Shu oydagi xarajatlar")
+    profit: int = Field(default=0, description="collected - expenses")
     active_group_count: int
     active_student_count: int
     groups: list[DashboardGroupCard]
+    today_lessons: list[TodayLesson] = Field(
+        default_factory=list,
+        description="Bugungi darslar — jadval bo'yicha, vaqti bilan tartibda",
+    )
     groups_without_attendance_today: list[GroupRef] = Field(
         description="Bugun davomat qilinmagan faol guruhlar — eslatma"
     )
@@ -48,6 +66,8 @@ class MonthlyReportOut(BaseModel):
     total_due: int
     total_paid: int
     total_debt: int
+    total_expenses: int = Field(default=0, description="Shu oydagi xarajatlar")
+    profit: int = Field(default=0, description="total_paid - total_expenses")
     groups: list[MonthlyGroupSummary]
 
 
@@ -56,6 +76,8 @@ class RevenuePoint(BaseModel):
     month: int
     collected: int
     expected: int
+    expenses: int = 0
+    profit: int = 0
 
 
 class RevenueTrendOut(BaseModel):

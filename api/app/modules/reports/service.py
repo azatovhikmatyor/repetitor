@@ -6,7 +6,7 @@ Agregatlar bazada bajariladi: 12 oylik tendentsiya uchun ham bitta
 `GROUP BY` so'rovi ishlatiladi, oyma-oy aylanish yo'q.
 """
 
-from datetime import date
+from datetime import date, time
 
 from sqlalchemy import Integer, case, cast, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,8 @@ from app.modules.attendance.models import (
     AttendanceSession,
     AttendanceStatus,
 )
+from app.modules.expenses import service as expense_service
+from app.modules.groups import schedule_service
 from app.modules.groups.models import Enrollment, EnrollmentStatus, Group, GroupStatus
 from app.modules.payments.models import MonthlyCharge, Payment
 from app.modules.payments.service import ensure_charges
@@ -79,17 +81,24 @@ async def dashboard(db: AsyncSession, *, teacher_id: int) -> schemas.DashboardOu
         .order_by(Group.name)
     )
 
-    # Bugun davomat qilingan guruhlar.
-    sessions_today = set(
-        await db.scalars(
-            select(AttendanceSession.group_id)
-            .join(Group, Group.id == AttendanceSession.group_id)
-            .where(
-                Group.teacher_id == teacher_id,
-                AttendanceSession.session_date == today,
-            )
+    # Bugungi sessiyalar: (guruh, boshlanish vaqti) -> sessiya.
+    sessions_rows = await db.execute(
+        select(
+            AttendanceSession.group_id,
+            AttendanceSession.start_time,
+            AttendanceSession.is_cancelled,
+        )
+        .join(Group, Group.id == AttendanceSession.group_id)
+        .where(
+            Group.teacher_id == teacher_id,
+            AttendanceSession.session_date == today,
         )
     )
+    today_sessions = {
+        (group_id, start_time): is_cancelled
+        for group_id, start_time, is_cancelled in sessions_rows.all()
+    }
+    sessions_today = {group_id for group_id, _ in today_sessions}
 
     active_groups = {
         group_id: name
@@ -136,10 +145,24 @@ async def dashboard(db: AsyncSession, *, teacher_id: int) -> schemas.DashboardOu
         or 0
     )
 
+    today_lessons = await _today_lessons(
+        db,
+        groups=active_groups,
+        student_counts={card.group_id: card.student_count for card in cards},
+        sessions=today_sessions,
+        today=today,
+    )
+
+    expenses = await expense_service.expenses_in_month(
+        db, teacher_id=teacher_id, year=year, month=month
+    )
+
     return schemas.DashboardOut(
         year=year,
         month=month,
         collected=collected,
+        expenses=expenses,
+        profit=collected - expenses,
         expected=expected,
         debt=max(expected - collected, 0),
         collection_rate=round(collected / expected * 100, 1) if expected else 0.0,
@@ -147,12 +170,71 @@ async def dashboard(db: AsyncSession, *, teacher_id: int) -> schemas.DashboardOu
         active_group_count=len(active_groups),
         active_student_count=active_student_count,
         groups=cards,
+        today_lessons=today_lessons,
         groups_without_attendance_today=[
             schemas.GroupRef(group_id=gid, group_name=name)
             for gid, name in active_groups.items()
             if gid not in sessions_today
         ],
     )
+
+
+async def _today_lessons(
+    db: AsyncSession,
+    *,
+    groups: dict[int, str],
+    student_counts: dict[int, int],
+    sessions: dict[tuple[int, time | None], bool],
+    today: date,
+) -> list[schemas.TodayLesson]:
+    """Bugun jadval bo'yicha bo'ladigan darslar.
+
+    O'qituvchi ertalab ilovani ochganda birinchi savoli — "bugun soat
+    nechada qaysi guruh?". Javob shu yerda, davomat tugmasi bilan birga.
+
+    Jadvalda yo'q, lekin davomati kiritilgan dars ham ro'yxatga tushadi:
+    yozuv bor ekan, u ko'rinishi kerak.
+    """
+    lessons: list[schemas.TodayLesson] = []
+    seen: set[tuple[int, time | None]] = set()
+
+    for group_id, name in groups.items():
+        planned = await schedule_service.lessons_in_range(
+            db, group_id=group_id, start=today, end=today
+        )
+        for lesson in planned:
+            key = (group_id, lesson.start_time)
+            seen.add(key)
+            lessons.append(
+                schemas.TodayLesson(
+                    group_id=group_id,
+                    group_name=name,
+                    start_time=lesson.start_time,
+                    end_time=lesson.end_time,
+                    is_saved=key in sessions,
+                    is_cancelled=sessions.get(key, False),
+                    student_count=student_counts.get(group_id, 0),
+                )
+            )
+
+    for (group_id, start_time), is_cancelled in sessions.items():
+        if (group_id, start_time) in seen or group_id not in groups:
+            continue
+        lessons.append(
+            schemas.TodayLesson(
+                group_id=group_id,
+                group_name=groups[group_id],
+                start_time=start_time,
+                is_saved=True,
+                is_cancelled=is_cancelled,
+                student_count=student_counts.get(group_id, 0),
+            )
+        )
+
+    lessons.sort(
+        key=lambda item: (item.start_time is None, item.start_time, item.group_name)
+    )
+    return lessons
 
 
 async def monthly_report(
@@ -230,12 +312,20 @@ async def monthly_report(
             )
         )
 
+    total_expenses = await expense_service.expenses_in_month(
+        db, teacher_id=teacher_id, year=year, month=month
+    )
+
     return schemas.MonthlyReportOut(
         year=year,
         month=month,
         total_due=total_due,
         total_paid=total_paid,
         total_debt=max(total_due - total_paid, 0),
+        total_expenses=total_expenses,
+        # Foyda yig'ilgan puldan hisoblanadi, kutilgandan emas: qarz
+        # hali pul emas.
+        profit=total_paid - total_expenses,
         groups=groups,
     )
 
@@ -283,23 +373,37 @@ async def revenue_trend(
     )
     collected_by_period = {(y, m): total for y, m, total in paid_rows.all()}
 
-    return schemas.RevenueTrendOut(
-        points=[
+    expenses_by_period = await expense_service.trend(
+        db, teacher_id=teacher_id, months=months
+    )
+
+    points = []
+    for y, m in periods:
+        collected = collected_by_period.get((y, m), 0)
+        expenses = expenses_by_period.get((y, m), 0)
+        points.append(
             schemas.RevenuePoint(
                 year=y,
                 month=m,
-                collected=collected_by_period.get((y, m), 0),
+                collected=collected,
                 expected=expected_by_period.get((y, m), 0),
+                expenses=expenses,
+                profit=collected - expenses,
             )
-            for y, m in periods
-        ]
-    )
+        )
+
+    return schemas.RevenueTrendOut(points=points)
 
 
 async def attendance_report(
     db: AsyncSession, *, teacher_id: int, year: int | None, month: int | None
 ) -> schemas.AttendanceReportOut:
-    conditions = [Group.teacher_id == teacher_id]
+    # Bo'lmagan dars hisobga olinmaydi — aks holda uni "hamma kelmagan"
+    # deb belgilash kerak bo'lardi va foiz buzilardi.
+    conditions = [
+        Group.teacher_id == teacher_id,
+        AttendanceSession.is_cancelled.is_(False),
+    ]
     if year is not None:
         conditions.append(func.extract("year", AttendanceSession.session_date) == year)
     if month is not None:
@@ -408,7 +512,8 @@ async def admin_stats(db: AsyncSession) -> schemas.AdminStatsOut:
     )
     sessions_30 = await db.scalar(
         select(func.count(AttendanceSession.id)).where(
-            AttendanceSession.session_date >= cutoff
+            AttendanceSession.session_date >= cutoff,
+            AttendanceSession.is_cancelled.is_(False),
         )
     )
     new_teachers = await db.scalar(
