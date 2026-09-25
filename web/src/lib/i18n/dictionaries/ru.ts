@@ -572,6 +572,7 @@ const ru: Dictionary = {
       signature: 'Подпись: ____________',
       close: 'Закрыть',
       print: 'Печать',
+      downloadPdf: 'PDF',
     },
 
     debtors: {
@@ -602,6 +603,7 @@ const ru: Dictionary = {
     title: 'Отчёт',
     excel: 'Excel',
     print: 'Печать',
+    downloadPdf: 'PDF',
     monthlyTitle: 'Финансовый отчёт за месяц',
     collected: 'Собрано',
     expected: 'Ожидается',

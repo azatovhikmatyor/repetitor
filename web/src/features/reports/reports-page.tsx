@@ -11,6 +11,8 @@ import { MonthPicker } from '@/components/ui/month-picker'
 import { Progress, Stat } from '@/components/ui/stat'
 import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { Table, Td, Th, Tr } from '@/components/ui/table'
+import { useToast } from '@/components/ui/toast'
+import { api, saveBlob } from '@/lib/api/client'
 import {
   attendanceReportQuery,
   monthlyReportQuery,
@@ -26,12 +28,29 @@ import { currentPeriod } from '@/lib/period'
 
 export function ReportsPage() {
   const t = useT()
+  const toast = useToast()
   const [period, setPeriod] = useState(currentPeriod())
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const { user } = useAuth()
 
   const monthly = useQuery(monthlyReportQuery(period))
   const trend = useQuery(revenueTrendQuery(12))
   const attendance = useQuery(attendanceReportQuery(period))
+
+  async function downloadPdf() {
+    setDownloadingPdf(true)
+    try {
+      const blob = await api.download('/reports/monthly.pdf', {
+        year: period.year,
+        month: period.month,
+      })
+      saveBlob(blob, `hisobot-${period.year}-${String(period.month).padStart(2, '0')}.pdf`)
+    } catch (error) {
+      toast.error(error)
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   return (
     <>
@@ -84,6 +103,14 @@ export function ReportsPage() {
               }}
             >
               {t.reports.excel}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!monthly.data}
+              loading={downloadingPdf}
+              onClick={() => void downloadPdf()}
+            >
+              {t.reports.downloadPdf}
             </Button>
             <Button variant="secondary" onClick={print}>
               {t.reports.print}

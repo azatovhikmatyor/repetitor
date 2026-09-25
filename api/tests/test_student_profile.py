@@ -235,3 +235,36 @@ async def test_teacher_can_reset_password_after_student_requests_it(
     # So'rov "hal qilingan" — qayta so'ramasdan yana tiklab bo'lmaydi.
     again = await client.post(f"/students/{student_id}/reset-password", headers=headers)
     assert again.status_code == 409
+
+
+async def test_reset_request_notifies_teacher(
+    client: AsyncClient, admin_headers: dict, monkeypatch
+) -> None:
+    """O'quvchi so'rov yuborganda o'qituvchiga xabar ketishi kerak."""
+    from app.modules.auth import service as auth_service
+
+    calls: list[dict] = []
+
+    async def fake_notify(*, teacher_email, teacher_phone, student_name) -> None:
+        calls.append(
+            {
+                "teacher_email": teacher_email,
+                "teacher_phone": teacher_phone,
+                "student_name": student_name,
+            }
+        )
+
+    monkeypatch.setattr(
+        auth_service, "notify_teacher_password_reset_request", fake_notify
+    )
+
+    await _student(client, admin_headers)
+
+    response = await client.post(
+        "/auth/password/request-reset-from-teacher",
+        json={"login": "+998901112233"},
+    )
+
+    assert response.status_code == 200
+    assert len(calls) == 1
+    assert calls[0]["student_name"] == "Aziza"

@@ -19,7 +19,11 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
-from app.core.notify import notify_admin_new_teacher, send_password_reset_code
+from app.core.notify import (
+    notify_admin_new_teacher,
+    notify_teacher_password_reset_request,
+    send_password_reset_code,
+)
 from app.core.rate_limit import check_login_attempt, clear_login_attempts
 from app.core.schemas import Message
 from app.core.security import (
@@ -274,6 +278,14 @@ async def request_student_password_reset(db: AsyncSession, login: str) -> Messag
 
     user.password_reset_requested_at = utc_now()
     await db.flush()
+
+    teacher = await db.get(User, user.teacher_id)
+    if teacher is not None:
+        await notify_teacher_password_reset_request(
+            teacher_email=teacher.email,
+            teacher_phone=teacher.phone,
+            student_name=user.full_name,
+        )
     return generic
 
 

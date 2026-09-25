@@ -577,6 +577,7 @@ const uz = {
       signature: 'Imzo: ____________',
       close: 'Yopish',
       print: 'Chop etish',
+      downloadPdf: 'PDF',
     },
 
     debtors: {
@@ -607,6 +608,7 @@ const uz = {
     title: 'Hisobot',
     excel: 'Excel',
     print: 'Chop etish',
+    downloadPdf: 'PDF',
     monthlyTitle: 'Oylik moliyaviy hisobot',
     collected: "Yig’ilgan",
     expected: 'Kutilgan',

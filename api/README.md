@@ -327,7 +327,7 @@ uchun:
 1. **O'qituvchi o'zi ro'yxatdan o'tadi, lekin super admin tasdiqlaydi.**
    Yangi o'qituvchi haqidagi bildirishnoma admin panelidagi "Tasdiq
    kutmoqda" ro'yxati va hisoblagichi orqali beriladi; `ADMIN_EMAILS`
-   sozlangan bo'lsa email ham yuboriladi (hozircha logga).
+   sozlangan bo'lsa email ham yuboriladi (SMTP sozlanmasa — logga).
 2. **Super admin o'qituvchi endpointlariga kira olmaydi.** Talabda
    "texnik jihatdan kira oladi" deyilgan, lekin 9-bo'limda "alohida
    o'qituvchining aniq daromadini ko'rmaydi" deyilgan. Qat'iyroq variant
@@ -350,21 +350,31 @@ uchun:
 
 ## Hali qilinmagan
 
-* **Email va SMS** — `app/core/notify.py` da interfeys bor, MVP
-  implementatsiyasi xabarni logga yozadi. SMTP yoki SMS provayderi
-  (Eskiz, Play Mobile) qo'shilganda faqat shu klasslar almashtiriladi.
-  Parol tiklash kodi hozircha loglarda ko'rinadi.
 * **Profil rasmi saqlash joyi** — hozircha lokal disk (`MEDIA_ROOT`,
   standart `./media`), FastAPI uni `/media` ostida beradi. Prod'da bu
   S3 yoki nginx'ga o'tadi: faqat `app/core/storage.py` almashtiriladi.
 * **Rate limit** jarayon xotirasida (`app/core/rate_limit.py`). Bir nechta
   worker bilan ishlaganda Redis implementatsiyasi kerak — interfeys tayyor.
-* **Redis, PWA/offline, eksport (PDF), test moduli, material/blog,
-  bildirishnoma, Telegram bot** — talabning keyingi bosqichlari. Model va
-  API ularni buzmasdan qo'shadigan qilib loyihalangan (o'quvchi hozirdanoq
-  alohida account).
+* **Redis, PWA/offline, test moduli, material/blog, Telegram bot** —
+  talabning keyingi bosqichlari. Model va API ularni buzmasdan qo'shadigan
+  qilib loyihalangan (o'quvchi hozirdanoq alohida account).
 * **Audit** hozircha `created_by_id` + o'zgarmas to'lov yozuvlari
   darajasida. To'liq audit log alohida modul bo'ladi.
+
+## Email, SMS va PDF eksport
+
+* **Email/SMS** (`app/core/notify.py`) — sozlanmasa (bo'sh `.env`)
+  xabar faqat logga yoziladi, dev uchun xavfsiz standart. SMTP
+  (`SMTP_HOST` va h.k.) yoki Eskiz.uz (`ESKIZ_EMAIL`/`ESKIZ_PASSWORD`)
+  to'ldirilsa, `email_sender`/`sms_sender` avtomatik haqiqiy
+  implementatsiyaga almashadi — chaqiruvchi kod o'zgarmaydi. Ishlatiladigan
+  joylar: parolni tiklash kodi, yangi o'qituvchi haqida admin xabari, va
+  o'quvchi parol so'raganda o'qituvchiga xabar.
+* **PDF eksport** (`app/core/pdf.py`, `reportlab`) — kvitansiya
+  (`GET /payments/{id}/receipt.pdf`) va oylik hisobot
+  (`GET /reports/monthly.pdf?year=&month=`) haqiqiy fayl sifatida yuklab
+  olinadi (brauzerning "Chop etish"idan farqli — email'ga biriktirish
+  yoki arxivlash uchun qulay).
 
 ## Sinov holati
 

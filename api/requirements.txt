@@ -13,3 +13,7 @@ pillow==11.3.0
 python-multipart==0.0.20
 # Windows/slim konteynerlarda IANA vaqt zonasi bazasi yo'q — Asia/Tashkent uchun shart.
 tzdata==2025.2
+# Eskiz SMS API bilan gaplashish uchun (app/core/notify.py).
+httpx==0.28.1
+# Kvitansiya va hisobotni PDF qilib chiqarish uchun (app/core/pdf.py).
+reportlab==5.0.1

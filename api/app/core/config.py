@@ -55,6 +55,22 @@ class Settings(BaseSettings):
     # Yangi o'qituvchi haqida xabar boradigan admin email'lari (vergul bilan).
     admin_emails: str = ""
 
+    # --- Email (SMTP) ---
+    # Bo'sh qolsa (standart), xabarlar haqiqatan yuborilmaydi — faqat
+    # loglarga yoziladi (dev/test uchun xavfsiz standart holat).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+
+    # --- SMS (Eskiz.uz) ---
+    # Ikkalasi ham bo'lmasa SMS ham loglarga yoziladi, xuddi email kabi.
+    eskiz_email: str = ""
+    eskiz_password: str = ""
+    eskiz_from: str = "4546"
+
     @computed_field
     @property
     def database_url(self) -> str:

@@ -164,9 +164,11 @@ belgilanadi, yozuvlar o'chadi va u davomat foiziga kirmaydi. Qaytarish
 ham bir bosishda.
 
 **Chop etish va eksport** — to'lov kvitansiyasi va oylik hisobot
-brauzerning "Chop etish → PDF" imkoniyati orqali (`.print-root` portali,
-`@media print`), ro'yxatlar esa CSV bo'lib yuklanadi (`;` ajratgichi va
-BOM — Excel o'zbekcha harflarni to'g'ri ochishi uchun).
+brauzerning "Chop etish → PDF" imkoniyati orqali ham (`.print-root`
+portali, `@media print`), ham to'g'ridan-to'g'ri **"PDF" tugmasi** bilan
+(backend `reportlab` orqali generatsiya qiladi — haqiqiy fayl, email'ga
+biriktirish uchun qulay). Ro'yxatlar esa CSV bo'lib yuklanadi (`;`
+ajratgichi va BOM — Excel o'zbekcha harflarni to'g'ri ochishi uchun).
 
 **Ro'yxatdan qo'shish** — Excel'dan nusxa ko'chirilgan matn qatorlarga
 ajratiladi, yuborishdan oldin "shunday tushunildi" jadvali ko'rsatiladi.
@@ -236,14 +238,14 @@ ko'rsatiladi (nusxa olish tugmasi bilan).
   keng ekranda jadval, telefonda karta chizadi. Ikkalasi ham DOM da
   bo'ladi (CSS bilan yashiriladi), ro'yxatlar kichik bo'lgani uchun bu
   qimmat emas.
-* **Matnlar** JSX ichida yozilgan (i18n kutubxonasi yo'q). Faqat backend
-  enum'lari `lib/labels.ts` da tarjima qilingan.
+* **Matnlar** `lib/i18n/dictionaries/` da (o'zbekcha/ruscha, tanlangan til
+  bo'yicha lazy-load qilinadi). Backend enum'lari `lib/labels.ts` da.
 
 ## Qilinmagan
 
-* O'quvchi roli uchun ekranlar — hozircha o'quvchi faqat `/auth/me` ga
-  kira oladi (talab: test moduli 2-bosqichda).
-* Eksport (PDF/rasm), bildirishnomalar, offline kesh.
+* Bildirishnomalar ilovaning o'zida (bell/counter) — hozircha email/SMS
+  orqali (`api/core/notify.py`), in-app emas.
+* Offline kesh (PWA) — talabning keyingi bosqichi.
 * Testlar (Vitest/Playwright) — hozircha yo'q.
 * `oxlint` da `react(only-export-components)` ogohlantirishlari qolgan:
   router va context fayllari komponent bilan birga hook/konstanta

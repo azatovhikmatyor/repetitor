@@ -1,8 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
+from fastapi.responses import Response
 
 from app.api.deps import CurrentStudent, CurrentTeacher, DbSession
+from app.core.pdf import build_receipt_pdf
 from app.modules.payments import schemas, service
 
 router = APIRouter(tags=["payments"])
@@ -95,6 +97,27 @@ async def get_payment(
     payment_id: int, db: DbSession, teacher: CurrentTeacher
 ) -> schemas.PaymentOut:
     return await service.get_payment(db, teacher_id=teacher.id, payment_id=payment_id)
+
+
+@router.get(
+    "/payments/{payment_id}/receipt.pdf",
+    summary="Kvitansiyani PDF qilib yuklab olish",
+)
+async def download_receipt_pdf(
+    payment_id: int, db: DbSession, teacher: CurrentTeacher
+) -> Response:
+    """Ekrandagi kvitansiya (`receipt-modal.tsx`) bilan bir xil ma'lumot,
+    lekin haqiqiy fayl — ota-onaga yuborish yoki arxivlash uchun."""
+    payment = await service.get_payment(
+        db, teacher_id=teacher.id, payment_id=payment_id
+    )
+    pdf = build_receipt_pdf(payment=payment, teacher_name=teacher.full_name)
+    filename = f"kvitansiya-{payment.year}{payment.month:02d}-{payment.id}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post(

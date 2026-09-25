@@ -1,6 +1,10 @@
+import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Printable, print } from '@/components/ui/printable'
+import { api, saveBlob } from '@/lib/api/client'
+import { useToast } from '@/components/ui/toast'
 import type { Payment } from '@/lib/api/types'
 import { useT } from '@/lib/i18n'
 import { formatDateTime, money, monthName } from '@/lib/format'
@@ -22,7 +26,21 @@ export function ReceiptModal({
   onClose: () => void
 }) {
   const t = useT()
+  const toast = useToast()
+  const [downloading, setDownloading] = useState(false)
   const number = `${payment.year}${String(payment.month).padStart(2, '0')}-${payment.id}`
+
+  async function downloadPdf() {
+    setDownloading(true)
+    try {
+      const blob = await api.download(`/payments/${payment.id}/receipt.pdf`)
+      saveBlob(blob, `kvitansiya-${number}.pdf`)
+    } catch (error) {
+      toast.error(error)
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const body = (
     <div className="mx-auto max-w-md">
@@ -72,6 +90,9 @@ export function ReceiptModal({
           <>
             <Button variant="secondary" onClick={onClose}>
               {t.payments.receipt.close}
+            </Button>
+            <Button variant="secondary" loading={downloading} onClick={() => void downloadPdf()}>
+              {t.payments.receipt.downloadPdf}
             </Button>
             <Button onClick={print}>{t.payments.receipt.print}</Button>
           </>

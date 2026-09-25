@@ -213,4 +213,25 @@ export const api = {
   put: <T>(path: string, body?: unknown) => send<T>(path, { method: 'PUT', body }),
 
   delete: <T = void>(path: string) => send<T>(path, { method: 'DELETE' }),
+
+  /** Fayl yuklab olish (PDF va h.k.) — JSON emas, `Blob` qaytaradi. */
+  async download(path: string, query?: RequestOptions['query']): Promise<Blob> {
+    const headers: Record<string, string> = {}
+    const token = tokenStore.access
+    if (token) headers.Authorization = `Bearer ${token}`
+
+    const response = await fetch(buildUrl(path, query), { headers })
+    if (!response.ok) throw await toApiError(response)
+    return response.blob()
+  },
+}
+
+/** `Blob`ni brauzerga fayl sifatida yuklatadi (link yaratib, bosib, tozalab). */
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
