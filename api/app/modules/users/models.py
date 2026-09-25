@@ -78,6 +78,13 @@ class User(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # O'quvchi ilovaga kira olmay qolsa, shu vaqtni belgilab o'qituvchisiga
+    # so'rov yuboradi — o'qituvchi FAQAT shunda parolni tiklay oladi.
+    # Bo'sh bo'lsa, o'qituvchi o'z ixtiyori bilan parolni o'zgartira olmaydi.
+    password_reset_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+
     # --- Faqat o'quvchi uchun to'ldiriladigan maydonlar ---
     # Alohida jadval qilinmadi: o'quvchi ham shu jadvalda yashaydi va
     # `teacher_id` allaqachon shunday — rolga bog'liq maydon.

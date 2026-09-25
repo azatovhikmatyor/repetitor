@@ -14,27 +14,23 @@ import { TemporaryPasswordModal } from '@/features/groups/add-student-modal'
 import { api } from '@/lib/api/client'
 import { teachersQuery } from '@/lib/api/queries'
 import type { Teacher, UserStatus } from '@/lib/api/types'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { formatDate } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
 
 import { DeleteTeacherModal } from './delete-teacher-modal'
 
-const FILTERS = [
-  { value: 'all', label: 'Hammasi' },
-  { value: 'pending', label: 'Tasdiq kutmoqda' },
-  { value: 'active', label: 'Faol' },
-  { value: 'blocked', label: 'Bloklangan' },
-]
-
-const STATUS_BADGE: Record<UserStatus, { tone: 'paid' | 'partial' | 'unpaid'; label: string }> = {
-  active: { tone: 'paid', label: 'Faol' },
-  pending: { tone: 'partial', label: 'Tasdiq kutmoqda' },
-  blocked: { tone: 'unpaid', label: 'Bloklangan' },
-}
-
 export function TeachersPage() {
+  const t = useT()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
+
+  const FILTERS = [
+    { value: 'all', label: t.admin.filterAll },
+    { value: 'pending', label: t.admin.filterPending },
+    { value: 'active', label: t.admin.filterActive },
+    { value: 'blocked', label: t.admin.filterBlocked },
+  ]
 
   const status = filter === 'all' ? undefined : (filter as UserStatus)
   const { data, isPending, error, refetch } = useQuery(teachersQuery(useDebounced(search), status))
@@ -42,15 +38,15 @@ export function TeachersPage() {
   return (
     <>
       <PageHeader
-        title="O&rsquo;qituvchilar"
-        description={data ? `${data.total} ta hisob` : undefined}
-        back={{ to: '/admin', label: 'Platforma' }}
+        title={t.admin.teachersTitle}
+        description={data ? t.admin.accountsCaption(data.total) : undefined}
+        back={{ to: '/admin', label: t.admin.platformBack }}
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="w-64">
           <Input
-            placeholder="Ism, username, email yoki telefon"
+            placeholder={t.admin.searchPlaceholder}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -69,7 +65,7 @@ export function TeachersPage() {
         {error && <ErrorState error={error} onRetry={() => void refetch()} />}
         {data && data.items.length === 0 && (
           <EmptyState
-            title={filter === 'pending' ? 'Tasdiq kutayotgan yo&rsquo;q' : 'Topilmadi'}
+            title={filter === 'pending' ? t.admin.noPending : t.admin.notFound}
           />
         )}
 
@@ -77,18 +73,18 @@ export function TeachersPage() {
           <Table>
             <thead>
               <tr>
-                <Th>Ism</Th>
-                <Th>Username</Th>
-                <Th>Aloqa</Th>
-                <Th align="right">Guruh</Th>
-                <Th align="right">O&rsquo;quvchi</Th>
-                <Th>Holat</Th>
+                <Th>{t.admin.colName}</Th>
+                <Th>{t.admin.colUsername}</Th>
+                <Th>{t.admin.colContact}</Th>
+                <Th align="right">{t.admin.colGroups}</Th>
+                <Th align="right">{t.admin.colStudents}</Th>
+                <Th>{t.admin.colStatus}</Th>
                 <Th />
               </tr>
             </thead>
             <tbody>
               {data.items.map((teacher) => (
-                <TeacherRow key={teacher.id} teacher={teacher} />
+                <TeacherRow key={teacher.id} teacher={teacher} t={t} />
               ))}
             </tbody>
           </Table>
@@ -98,7 +94,7 @@ export function TeachersPage() {
   )
 }
 
-function TeacherRow({ teacher }: { teacher: Teacher }) {
+function TeacherRow({ teacher, t }: { teacher: Teacher; t: Dictionary }) {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [action, setAction] = useState<'approve' | 'block' | 'unblock' | 'reset' | null>(
@@ -109,13 +105,23 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin'] })
 
+  const STATUS_BADGE: Record<UserStatus, { tone: 'paid' | 'partial' | 'unpaid'; label: string }> = {
+    active: { tone: 'paid', label: t.admin.statusActive },
+    pending: { tone: 'partial', label: t.admin.statusPending },
+    blocked: { tone: 'unpaid', label: t.admin.statusBlocked },
+  }
+
   const statusMutation = useMutation({
     mutationFn: (path: 'approve' | 'block' | 'unblock') =>
       api.post(`/admin/teachers/${teacher.id}/${path}`),
     onSuccess: async (_, path) => {
       await refresh()
       toast.success(
-        path === 'approve' ? 'Tasdiqlandi' : path === 'block' ? 'Bloklandi' : 'Tiklandi',
+        path === 'approve'
+          ? t.admin.approvedToast
+          : path === 'block'
+            ? t.admin.blockedToast
+            : t.admin.unblockedToast,
       )
       setAction(null)
     },
@@ -156,7 +162,7 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
         <Td className="text-slate-500">
           {teacher.email ?? teacher.phone ?? (
             // Bu ikkisisiz o'qituvchi parolni o'zi tiklay olmaydi.
-            <span className="text-unpaid">yo&rsquo;q</span>
+            <span className="text-unpaid">{t.admin.noContact}</span>
           )}
         </Td>
         <Td align="right">{teacher.active_group_count}</Td>
@@ -173,24 +179,24 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
           <span className="flex flex-wrap justify-end gap-1">
             {teacher.status === 'pending' && (
               <Button size="sm" onClick={() => setAction('approve')}>
-                Tasdiqlash
+                {t.admin.approveBtn}
               </Button>
             )}
             {teacher.status === 'active' && (
               <Button variant="ghost" size="sm" onClick={() => setAction('block')}>
-                Bloklash
+                {t.admin.blockBtn}
               </Button>
             )}
             {teacher.status === 'blocked' && (
               <Button variant="secondary" size="sm" onClick={() => setAction('unblock')}>
-                Tiklash
+                {t.admin.unblockBtn}
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => setAction('reset')}>
-              Parol
+              {t.admin.passwordBtn}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setDeleting(true)}>
-              O&rsquo;chirish
+              {t.admin.deleteBtn}
             </Button>
           </span>
         </Td>
@@ -201,9 +207,9 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
         onClose={() => setAction(null)}
         onConfirm={() => statusMutation.mutate('approve')}
         loading={statusMutation.isPending}
-        title="Hisobni tasdiqlash"
-        message={`${teacher.full_name} (${teacher.username}) tizimga kira oladigan bo'ladi.`}
-        confirmLabel="Tasdiqlash"
+        title={t.admin.approveConfirmTitle}
+        message={t.admin.approveConfirmMessage(teacher.full_name, teacher.username ?? '')}
+        confirmLabel={t.admin.approveBtn}
       />
 
       <ConfirmModal
@@ -212,9 +218,9 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
         onConfirm={() => statusMutation.mutate('block')}
         loading={statusMutation.isPending}
         destructive
-        title="Hisobni bloklash"
-        message={`${teacher.full_name} tizimga kira olmaydi. Uning ${teacher.student_count} ta o'quvchisi ham o'z hisobidan foydalana olmaydi. Ma'lumotlar o'chmaydi.`}
-        confirmLabel="Bloklash"
+        title={t.admin.blockConfirmTitle}
+        message={t.admin.blockConfirmMessage(teacher.full_name, teacher.student_count)}
+        confirmLabel={t.admin.blockBtn}
       />
 
       <ConfirmModal
@@ -222,9 +228,9 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
         onClose={() => setAction(null)}
         onConfirm={() => statusMutation.mutate('unblock')}
         loading={statusMutation.isPending}
-        title="Hisobni tiklash"
-        message={`${teacher.full_name} va uning o'quvchilari yana tizimga kira oladi.`}
-        confirmLabel="Tiklash"
+        title={t.admin.unblockConfirmTitle}
+        message={t.admin.unblockConfirmMessage(teacher.full_name)}
+        confirmLabel={t.admin.unblockBtn}
       />
 
       <ConfirmModal
@@ -232,9 +238,9 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
         onClose={() => setAction(null)}
         onConfirm={() => resetMutation.mutate()}
         loading={resetMutation.isPending}
-        title="Parolni tiklash"
-        message={`${teacher.full_name} uchun yangi vaqtinchalik parol beriladi va barcha sessiyalari yopiladi. U keyingi kirishda parolni almashtirishi shart.`}
-        confirmLabel="Tiklash"
+        title={t.admin.resetConfirmTitle}
+        message={t.admin.resetConfirmMessage(teacher.full_name)}
+        confirmLabel={t.admin.passwordBtn}
       />
 
       {deleting && (

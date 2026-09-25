@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Stat } from '@/components/ui/stat'
 import { ErrorState, Loading } from '@/components/ui/states'
 import { adminStatsQuery } from '@/lib/api/queries'
+import { useT } from '@/lib/i18n'
 
 /**
  * Super Admin bosh sahifasi — platforma sog'ligi.
@@ -16,16 +17,17 @@ import { adminStatsQuery } from '@/lib/api/queries'
  * bermaydi.
  */
 export function AdminStatsPage() {
+  const t = useT()
   const { data, isPending, error, refetch } = useQuery(adminStatsQuery())
 
   return (
     <>
       <PageHeader
-        title="Platforma"
-        description="Umumiy ko&rsquo;rsatkichlar"
+        title={t.admin.statsTitle}
+        description={t.admin.statsDesc}
         actions={
           <Link to="/admin/teachers">
-            <Button variant="secondary">O&rsquo;qituvchilar</Button>
+            <Button variant="secondary">{t.admin.teachersBtn}</Button>
           </Link>
         }
       />
@@ -39,51 +41,50 @@ export function AdminStatsPage() {
             <Card className="border-partial/40 bg-partial/5">
               <CardBody className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-slate-700">
-                  <span className="font-semibold">{data.pending_teacher_count} ta</span>{' '}
-                  o&rsquo;qituvchi tasdiqlashingizni kutmoqda.
+                  {t.admin.pendingNotice(data.pending_teacher_count)}
                 </p>
                 <Link to="/admin/teachers">
-                  <Button size="sm">Ko&rsquo;rish</Button>
+                  <Button size="sm">{t.admin.view}</Button>
                 </Link>
               </CardBody>
             </Card>
           )}
 
           <Card>
-            <CardHeader title="Foydalanuvchilar" />
+            <CardHeader title={t.admin.usersTitle} />
             <CardBody className="grid gap-6 sm:grid-cols-3">
               <Stat
-                label="O&rsquo;qituvchilar"
+                label={t.admin.teachersLabel}
                 value={data.teacher_count}
-                caption={`${data.active_teacher_count} faol · ${data.pending_teacher_count} kutmoqda`}
+                caption={t.admin.teachersCaption(
+                  data.active_teacher_count,
+                  data.pending_teacher_count,
+                )}
               />
-              <Stat label="O&rsquo;quvchilar" value={data.student_count} />
+              <Stat label={t.admin.studentsLabel} value={data.student_count} />
               <Stat
-                label="Guruhlar"
+                label={t.admin.groupsLabel}
                 value={data.group_count}
-                caption={`${data.active_group_count} ta faol`}
+                caption={t.admin.groupsCaption(data.active_group_count)}
               />
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader
-              title="Faollik"
-              description="Oxirgi 30 kun"
-            />
+            <CardHeader title={t.admin.activityTitle} description={t.admin.activityDesc} />
             <CardBody className="grid gap-6 sm:grid-cols-3">
-              <Stat label="Davomat sessiyalari" value={data.attendance_sessions_last_30_days} />
-              <Stat label="Yangi o&rsquo;qituvchilar" value={data.new_teachers_last_30_days} />
-              <Stat label="Yangi guruhlar" value={data.new_groups_last_30_days} />
+              <Stat
+                label={t.admin.attendanceSessions}
+                value={data.attendance_sessions_last_30_days}
+              />
+              <Stat label={t.admin.newTeachers} value={data.new_teachers_last_30_days} />
+              <Stat label={t.admin.newGroups} value={data.new_groups_last_30_days} />
             </CardBody>
           </Card>
 
           <Card className="border-slate-200 bg-slate-100">
             <CardBody>
-              <p className="text-sm text-slate-600">
-                O&rsquo;qituvchilarning moliyaviy ma&rsquo;lumoti (daromad, to&rsquo;lovlar,
-                qarzdorlar) shaxsiy hisoblanadi va bu panelda ko&rsquo;rsatilmaydi.
-              </p>
+              <p className="text-sm text-slate-600">{t.admin.privacyNotice}</p>
             </CardBody>
           </Card>
         </div>

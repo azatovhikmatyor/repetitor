@@ -16,6 +16,7 @@ import { expensesQuery, qk } from '@/lib/api/queries'
 import type { CopyPreviousResult, Expense } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
 import { downloadCsv } from '@/lib/export'
+import { useT } from '@/lib/i18n'
 import { formatDate, money, monthName } from '@/lib/format'
 import { expenseCategoryLabel } from '@/lib/labels'
 import { currentPeriod } from '@/lib/period'
@@ -32,6 +33,7 @@ import { ExpenseFormModal } from './expense-form-modal'
  */
 export function ExpensesPage() {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const [period, setPeriod] = useState(currentPeriod())
   const [editing, setEditing] = useState<Expense | null>(null)
@@ -51,7 +53,7 @@ export function ExpensesPage() {
     onSuccess: async () => {
       await refresh()
       setRemoving(null)
-      toast.success("Xarajat o'chirildi")
+      toast.success(t.expenses.deletedToast)
     },
     onError: (issue) => {
       toast.error(issue)
@@ -68,8 +70,8 @@ export function ExpensesPage() {
       await refresh()
       toast.success(
         result.copied > 0
-          ? `${result.copied} ta xarajat ko'chirildi`
-          : "Ko'chiriladigan xarajat topilmadi",
+          ? t.expenses.copiedToast(result.copied)
+          : t.expenses.nothingToCopy,
       )
     },
     onError: (issue) => toast.error(issue),
@@ -82,7 +84,7 @@ export function ExpensesPage() {
   return (
     <>
       <PageHeader
-        title="Xarajatlar"
+        title={t.expenses.title}
         description={data ? `${monthName(data.month)} ${data.year}` : undefined}
         actions={
           <>
@@ -93,21 +95,27 @@ export function ExpensesPage() {
                 if (!data) return
                 downloadCsv(
                   `xarajat-${data.year}-${String(data.month).padStart(2, '0')}`,
-                  ['Sana', 'Nomi', 'Toifa', 'Summa', 'Izoh'],
+                  [
+                    t.expenses.colDate,
+                    t.expenses.colTitle,
+                    t.expenses.colCategory,
+                    t.expenses.colAmount,
+                    t.expenses.form.noteLabel,
+                  ],
                   data.items.map((item) => [
                     item.spent_on,
                     item.title,
-                    expenseCategoryLabel[item.category],
+                    expenseCategoryLabel(t)[item.category],
                     item.amount,
                     item.note,
                   ]),
                 )
               }}
             >
-              Excel
+              {t.reports.excel}
             </Button>
             <MonthPicker value={period} onChange={setPeriod} />
-            <Button onClick={() => setCreating(true)}>Xarajat qo&rsquo;shish</Button>
+            <Button onClick={() => setCreating(true)}>{t.expenses.addBtn}</Button>
           </>
         }
       />
@@ -119,19 +127,19 @@ export function ExpensesPage() {
         <div className="space-y-6">
           <Card>
             <CardBody className="grid gap-6 sm:grid-cols-3">
-              <Stat label="Yig&rsquo;ilgan" value={money(data.collected)} tone="paid" />
+              <Stat label={t.expenses.collected} value={money(data.collected)} tone="paid" />
               <Stat
-                label="Xarajat"
+                label={t.expenses.total}
                 value={money(data.total)}
                 tone={data.total > 0 ? 'unpaid' : undefined}
               />
               <Stat
-                label="Foyda"
+                label={t.expenses.profit}
                 value={money(data.profit)}
                 caption={
                   data.collected > 0
-                    ? `daromadning ${Math.round(rate * 100)}%`
-                    : 'daromad yo‘q'
+                    ? t.expenses.profitPctCaption(Math.round(rate * 100))
+                    : t.expenses.noIncome
                 }
                 tone={profitable ? 'paid' : 'unpaid'}
               />
@@ -144,15 +152,15 @@ export function ExpensesPage() {
 
           {data.by_category.length > 0 && (
             <Card>
-              <CardHeader title="Toifalar bo&rsquo;yicha" />
+              <CardHeader title={t.expenses.byCategory} />
               <CardBody className="space-y-3">
                 {data.by_category.map((item) => (
                   <div key={item.category}>
                     <div className="mb-1 flex items-center justify-between text-sm">
                       <span className="text-slate-700">
-                        {expenseCategoryLabel[item.category]}
+                        {expenseCategoryLabel(t)[item.category]}
                         <span className="ml-1.5 text-xs text-slate-400">
-                          {item.count} ta
+                          {t.expenses.countUnit(item.count)}
                         </span>
                       </span>
                       <span className="tabular font-medium text-slate-800">
@@ -177,8 +185,8 @@ export function ExpensesPage() {
 
           <Card>
             <CardHeader
-              title="Yozuvlar"
-              description={`${data.items.length} ta`}
+              title={t.expenses.entriesTitle}
+              description={t.expenses.countUnit(data.items.length)}
               action={
                 <Button
                   variant="secondary"
@@ -186,18 +194,18 @@ export function ExpensesPage() {
                   loading={copyPrevious.isPending}
                   onClick={() => copyPrevious.mutate()}
                 >
-                  O&rsquo;tgan oydan ko&rsquo;chirish
+                  {t.expenses.copyPrevious}
                 </Button>
               }
             />
 
             {data.items.length === 0 ? (
               <EmptyState
-                title="Bu oyda xarajat yo&rsquo;q"
-                description="Ijara, maosh va kommunal yozilsa, foyda ham ko‘rinadi"
+                title={t.expenses.noExpenses}
+                description={t.expenses.noExpensesDesc}
                 action={
                   <Button size="sm" onClick={() => setCreating(true)}>
-                    Xarajat qo&rsquo;shish
+                    {t.expenses.addBtn}
                   </Button>
                 }
               />
@@ -208,34 +216,34 @@ export function ExpensesPage() {
                 columns={[
                   {
                     key: 'title',
-                    header: 'Nomi',
+                    header: t.expenses.colTitle,
                     primary: true,
                     cell: (item) => (
                       <span className="flex flex-wrap items-center gap-1.5">
                         {item.title}
-                        {item.is_recurring && <Badge>Har oy</Badge>}
+                        {item.is_recurring && <Badge>{t.expenses.recurringBadge}</Badge>}
                       </span>
                     ),
                   },
                   {
                     key: 'category',
-                    header: 'Toifa',
+                    header: t.expenses.colCategory,
                     cell: (item) => (
                       <span className="text-slate-500">
-                        {expenseCategoryLabel[item.category]}
+                        {expenseCategoryLabel(t)[item.category]}
                       </span>
                     ),
                   },
                   {
                     key: 'date',
-                    header: 'Sana',
+                    header: t.expenses.colDate,
                     cell: (item) => (
                       <span className="text-slate-500">{formatDate(item.spent_on)}</span>
                     ),
                   },
                   {
                     key: 'amount',
-                    header: 'Summa',
+                    header: t.expenses.colAmount,
                     align: 'right',
                     cell: (item) => (
                       <span className="font-medium">{money(item.amount)}</span>
@@ -252,14 +260,14 @@ export function ExpensesPage() {
                           size="sm"
                           onClick={() => setEditing(item)}
                         >
-                          Tahrirlash
+                          {t.expenses.edit}
                         </Button>
                         <Button
                           variant="danger-ghost"
                           size="sm"
                           onClick={() => setRemoving(item)}
                         >
-                          O&rsquo;chirish
+                          {t.expenses.delete}
                         </Button>
                       </span>
                     ),
@@ -270,9 +278,7 @@ export function ExpensesPage() {
           </Card>
 
           {data.items.some((item) => item.note) && (
-            <p className={cn('text-xs text-slate-400')}>
-              Izohlar yozuvni tahrirlaganda ko&rsquo;rinadi.
-            </p>
+            <p className={cn('text-xs text-slate-400')}>{t.expenses.noteHint}</p>
           )}
         </div>
       )}
@@ -295,9 +301,12 @@ export function ExpensesPage() {
         onConfirm={() => removing && remove.mutate(removing)}
         loading={remove.isPending}
         destructive
-        title="Xarajatni o&rsquo;chirish"
-        message={`${removing?.title ?? ''} — ${money(removing?.amount ?? 0)} so'm. Yozuv butunlay o'chadi.`}
-        confirmLabel="O'chirish"
+        title={t.expenses.deleteConfirmTitle}
+        message={t.expenses.deleteConfirmMessage(
+          removing?.title ?? '',
+          money(removing?.amount ?? 0),
+        )}
+        confirmLabel={t.expenses.delete}
       />
     </>
   )

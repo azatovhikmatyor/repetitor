@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 
@@ -124,3 +124,35 @@ async def health() -> dict[str, str]:
 
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+
+# Web ilova (`web/npm run build` natijasi). Mavjud bo'lsa backend o'zi
+# beradi: bitta process, bitta origin — alohida nginx/CDN, CORS ham
+# kerak emas. Papka topilmasa (masalan faqat API bilan ishlanadigan
+# lokal dev'da) bu bo'lim jim o'tkazib yuboriladi, API o'zgarishsiz
+# ishlayveradi.
+#
+# MUHIM: bu bo'lim eng oxirida ro'yxatdan o'tishi shart — Starlette
+# marshrutlarni ro'yxatga qo'shilgan tartibda tekshiradi, shuning uchun
+# `/{full_path:path}` yuqoridagi `/api/v1/...` va `/media` yo'llaridan
+# keyin kelmasa, ularni "yutib" qo'yadi.
+_web_dist = (Path(__file__).resolve().parent.parent / settings.web_dist_dir).resolve()
+_web_assets = _web_dist / "assets"
+
+if _web_dist.is_dir():
+    if _web_assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=_web_assets), name="web-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_web(full_path: str) -> FileResponse:
+        """SPA fallback: haqiqiy fayl bo'lsa o'shani, aks holda `index.html`.
+
+        React Router marshrutlashni brauzer tomonida qiladi (`/groups/5`
+        kabi manzillar serverda alohida mavjud emas) — shuning uchun so'ralgan
+        yo'lga mos fayl topilmasa (masalan sahifa yangilanganda) doim
+        `index.html` qaytariladi, qolgan marshrutlashni frontend o'zi qiladi.
+        """
+        candidate = _web_dist / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(_web_dist / "index.html")

@@ -9,6 +9,7 @@ import { ConfirmModal } from '@/components/ui/modal'
 import { pendingTeachersQuery } from '@/lib/api/queries'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useT } from '@/lib/i18n'
 
 interface NavItem {
   to: string
@@ -18,31 +19,32 @@ interface NavItem {
   badge?: 'pending-teachers'
 }
 
-const TEACHER_NAV: NavItem[] = [
-  { to: '/', label: 'Bosh sahifa', icon: 'home' },
-  { to: '/groups', label: 'Guruhlar', icon: 'groups' },
-  { to: '/students', label: "O'quvchilar", icon: 'students' },
-  { to: '/expenses', label: 'Xarajatlar', icon: 'money' },
-  { to: '/reports', label: 'Hisobot', icon: 'reports' },
-]
-
-const ADMIN_NAV: NavItem[] = [
-  { to: '/admin', label: 'Platforma', icon: 'home' },
-  {
-    to: '/admin/teachers',
-    label: "O'qituvchilar",
-    icon: 'students',
-    badge: 'pending-teachers',
-  },
-]
-
 export function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const t = useT()
   const isAdmin = user?.role === 'super_admin'
-  const nav = isAdmin ? ADMIN_NAV : TEACHER_NAV
+  const isStudent = user?.role === 'student'
+  const teacherNav: NavItem[] = [
+    { to: '/', label: t.nav.dashboard, icon: 'home' },
+    { to: '/groups', label: t.nav.groups, icon: 'groups' },
+    { to: '/students', label: t.nav.students, icon: 'students' },
+    { to: '/expenses', label: t.nav.expenses, icon: 'money' },
+    { to: '/reports', label: t.nav.reports, icon: 'reports' },
+  ]
+  const adminNav: NavItem[] = [
+    { to: '/admin', label: t.nav.platform, icon: 'home' },
+    { to: '/admin/teachers', label: t.nav.teachers, icon: 'students', badge: 'pending-teachers' },
+  ]
+  // O'quvchi faqat o'zini ko'radi — guruh, o'quvchilar ro'yxati va
+  // xarajatlar unga umuman ko'rinmaydi.
+  const studentNav: NavItem[] = [
+    { to: '/my/attendance', label: t.nav.myAttendance, icon: 'reports' },
+    { to: '/my/payments', label: t.nav.myPayments, icon: 'money' },
+  ]
+  const nav = isAdmin ? adminNav : isStudent ? studentNav : teacherNav
 
   // Yangi o'qituvchi haqidagi bildirishnoma — yon menyudagi raqam.
   const pending = useQuery({ ...pendingTeachersQuery(), enabled: isAdmin })
@@ -93,16 +95,33 @@ export function AppShell() {
                   {user?.full_name}
                 </span>
                 <span className="block truncate text-xs text-slate-500">
-                  {user?.role === 'super_admin' ? 'Super admin' : "O'qituvchi"}
+                  {user?.role === 'super_admin'
+                    ? t.nav.superAdminRole
+                    : user?.role === 'student'
+                      ? t.nav.studentRole
+                      : t.nav.teacherRole}
                 </span>
               </span>
             </button>
 
             <button
               type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                void navigate('/settings')
+              }}
+              title={t.nav.settings}
+              aria-label={t.nav.settings}
+              className="grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+            >
+              <Icon name="settings" className="size-4.5" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => setLogoutOpen(true)}
-              title="Chiqish"
-              aria-label="Chiqish"
+              title={t.nav.logout}
+              aria-label={t.nav.logout}
               className="grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-unpaid transition-colors hover:border-unpaid/40 hover:bg-unpaid/10"
             >
               <Icon name="logout" className="size-4.5" />
@@ -149,9 +168,9 @@ export function AppShell() {
         onClose={() => setLogoutOpen(false)}
         onConfirm={() => void logout()}
         destructive
-        title="Tizimdan chiqish"
-        message="Hisobingizdan chiqasiz. Qaytadan kirish uchun username va parol kerak bo'ladi."
-        confirmLabel="Chiqish"
+        title={t.logoutModal.title}
+        message={t.logoutModal.message}
+        confirmLabel={t.logoutModal.confirmLabel}
       />
     </div>
   )

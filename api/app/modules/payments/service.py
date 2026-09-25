@@ -372,9 +372,23 @@ async def list_group_payments(
 async def student_payments(
     db: AsyncSession, *, teacher_id: int, student_id: int
 ) -> list[schemas.StudentChargeOut]:
-    """O'quvchining barcha guruhlar bo'yicha to'lov tarixi."""
+    """O'quvchining barcha guruhlar bo'yicha to'lov tarixi (o'qituvchi ko'rinishi)."""
     student = await get_owned_student(db, teacher_id=teacher_id, student_id=student_id)
+    return await _student_payment_history(db, student=student, teacher_id=teacher_id)
 
+
+async def student_payments_self(
+    db: AsyncSession, *, student: User
+) -> list[schemas.StudentChargeOut]:
+    """O'quvchi o'zining to'lov tarixini ko'radi."""
+    return await _student_payment_history(
+        db, student=student, teacher_id=student.teacher_id
+    )
+
+
+async def _student_payment_history(
+    db: AsyncSession, *, student: User, teacher_id: int | None
+) -> list[schemas.StudentChargeOut]:
     rows = await db.execute(
         select(MonthlyCharge, Group)
         .join(Enrollment, Enrollment.id == MonthlyCharge.enrollment_id)

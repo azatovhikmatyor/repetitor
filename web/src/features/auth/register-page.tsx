@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
 import { api, ApiError } from '@/lib/api/client'
+import { useT } from '@/lib/i18n'
 import type { RegisterResponse } from '@/lib/api/types'
 
 import { AuthLayout } from './login-page'
@@ -20,6 +21,7 @@ import { AuthLayout } from './login-page'
  */
 export function RegisterPage() {
   const toast = useToast()
+  const t = useT()
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -38,7 +40,7 @@ export function RegisterPage() {
     if (busy) return
 
     if (form.password !== form.password_confirm) {
-      setErrors({ password_confirm: 'Parollar mos kelmadi' })
+      setErrors({ password_confirm: t.auth.passwordsMismatch })
       return
     }
 
@@ -71,17 +73,15 @@ export function RegisterPage() {
 
   if (done) {
     return (
-      <AuthLayout title="Ro&rsquo;yxatdan o&rsquo;tdingiz">
+      <AuthLayout title={t.auth.registeredTitle}>
         <div className="space-y-4 text-center">
           <p className="text-sm text-slate-600">{done.detail}</p>
           <p className="rounded-lg bg-slate-50 py-3 text-sm">
-            Username: <span className="font-semibold">{done.username}</span>
+            <span className="font-semibold">{t.auth.usernameLabelShort(done.username)}</span>
           </p>
-          <p className="text-xs text-slate-500">
-            Tasdiqlangandan keyin shu username va parol bilan kira olasiz.
-          </p>
+          <p className="text-xs text-slate-500">{t.auth.afterApprovalHint}</p>
           <Link to="/login">
-            <Button className="w-full">Kirish sahifasiga</Button>
+            <Button className="w-full">{t.auth.toLoginPage}</Button>
           </Link>
         </div>
       </AuthLayout>
@@ -90,13 +90,13 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Ro&rsquo;yxatdan o&rsquo;tish"
-      subtitle="O&rsquo;qituvchi hisobini oching"
+      title={t.auth.registerTitle}
+      subtitle={t.auth.registerSubtitle}
       footer={
         <>
-          Hisobingiz bormi?{' '}
+          {t.auth.hasAccount}{' '}
           <Link to="/login" className="font-medium text-brand-700 hover:underline">
-            Kirish
+            {t.auth.login}
           </Link>
         </>
       }
@@ -104,14 +104,14 @@ export function RegisterPage() {
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Ism"
+            label={t.auth.firstName}
             value={form.first_name}
             error={errors.first_name}
             autoFocus
             onChange={(event) => setForm({ ...form, first_name: event.target.value })}
           />
           <Input
-            label="Familiya"
+            label={t.auth.lastName}
             value={form.last_name}
             error={errors.last_name}
             onChange={(event) => setForm({ ...form, last_name: event.target.value })}
@@ -119,18 +119,18 @@ export function RegisterPage() {
         </div>
 
         <Input
-          label="Username"
+          label={t.auth.username}
           value={form.username}
           error={errors.username}
           autoComplete="username"
-          hint="Tizimga shu nom bilan kirasiz. Kichik harf, raqam, . _ -"
+          hint={t.auth.usernameHint}
           onChange={(event) =>
             setForm({ ...form, username: event.target.value.toLowerCase() })
           }
         />
 
         <Input
-          label="Email (ixtiyoriy)"
+          label={t.auth.emailOptional}
           type="email"
           value={form.email}
           error={errors.email}
@@ -138,26 +138,26 @@ export function RegisterPage() {
         />
 
         <Input
-          label="Telefon (ixtiyoriy)"
+          label={t.auth.phoneOptional}
           value={form.phone}
           error={errors.phone}
           placeholder="+998 90 123 45 67"
-          hint="Email yoki telefon bo&rsquo;lsa, parolni o&rsquo;zingiz tiklay olasiz"
+          hint={t.auth.phoneHint}
           onChange={(event) => setForm({ ...form, phone: event.target.value })}
         />
 
         <Input
-          label="Parol"
+          label={t.auth.password}
           type="password"
           value={form.password}
           error={errors.password}
-          hint="Kamida 8 belgi"
+          hint={t.auth.passwordHint}
           autoComplete="new-password"
           onChange={(event) => setForm({ ...form, password: event.target.value })}
         />
 
         <Input
-          label="Parolni takrorlang"
+          label={t.auth.repeatPassword}
           type="password"
           value={form.password_confirm}
           error={errors.password_confirm}
@@ -168,11 +168,11 @@ export function RegisterPage() {
         />
 
         <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800">
-          Hisobingiz administrator tasdiqlagandan keyin faollashadi.
+          {t.auth.pendingApprovalNotice}
         </p>
 
         <Button type="submit" className="w-full" loading={busy}>
-          Ro&rsquo;yxatdan o&rsquo;tish
+          {t.auth.registerTitle}
         </Button>
       </form>
     </AuthLayout>

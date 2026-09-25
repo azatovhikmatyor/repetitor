@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmModal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
+import { useT } from '@/lib/i18n'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_BYTES = 5 * 1024 * 1024
@@ -33,6 +34,7 @@ export function AvatarUploader<T>({
   label?: string
 }) {
   const toast = useToast()
+  const t = useT()
   const inputRef = useRef<HTMLInputElement>(null)
   const [confirmRemove, setConfirmRemove] = useState(false)
 
@@ -44,7 +46,7 @@ export function AvatarUploader<T>({
     },
     onSuccess: (updated) => {
       onChange(updated)
-      toast.success('Rasm yuklandi')
+      toast.success(t.avatarUploader.uploadedToast)
     },
     onError: (error) => toast.error(error),
   })
@@ -54,7 +56,7 @@ export function AvatarUploader<T>({
     onSuccess: (updated) => {
       onChange(updated)
       setConfirmRemove(false)
-      toast.success("Rasm o'chirildi")
+      toast.success(t.avatarUploader.deletedToast)
     },
     onError: (error) => {
       toast.error(error)
@@ -66,7 +68,7 @@ export function AvatarUploader<T>({
     if (!file) return
     // Server ham tekshiradi, lekin katta faylni bekorga yubormaymiz.
     if (file.size > MAX_BYTES) {
-      toast.error(new Error('Rasm hajmi 5 MB dan oshmasin'))
+      toast.error(new Error(t.avatarUploader.sizeError))
       return
     }
     upload.mutate(file)
@@ -96,7 +98,7 @@ export function AvatarUploader<T>({
             loading={upload.isPending}
             onClick={() => inputRef.current?.click()}
           >
-            {src ? 'Rasmni almashtirish' : (label ?? 'Rasm yuklash')}
+            {src ? t.avatarUploader.replace : (label ?? t.avatarUploader.upload)}
           </Button>
           {src && (
             <Button
@@ -104,11 +106,11 @@ export function AvatarUploader<T>({
               size="sm"
               onClick={() => setConfirmRemove(true)}
             >
-              O&rsquo;chirish
+              {t.common.delete}
             </Button>
           )}
         </div>
-        <p className="text-xs text-slate-500">JPG, PNG yoki WEBP &middot; 5 MB gacha</p>
+        <p className="text-xs text-slate-500">{t.avatarUploader.hint}</p>
       </div>
 
       <ConfirmModal
@@ -117,9 +119,9 @@ export function AvatarUploader<T>({
         onConfirm={() => remove.mutate()}
         loading={remove.isPending}
         destructive
-        title="Rasmni o&rsquo;chirish"
-        message="Rasm o'chiriladi va o'rniga ismning bosh harfi ko'rinadi."
-        confirmLabel="O'chirish"
+        title={t.avatarUploader.deleteConfirmTitle}
+        message={t.avatarUploader.deleteConfirmMessage}
+        confirmLabel={t.common.delete}
       />
     </div>
   )

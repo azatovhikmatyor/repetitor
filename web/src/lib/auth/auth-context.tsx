@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { api, ApiError, setSessionExpiredHandler, tokenStore } from '@/lib/api/client'
 import type { LoginResponse, User } from '@/lib/api/types'
@@ -37,6 +38,7 @@ export function useAuth(): AuthApi {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [state, setState] = useState<AuthState>({
     status: tokenStore.hasSession ? 'loading' : 'signed-out',
     user: null,
@@ -54,7 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOutLocally = useCallback(() => {
     tokenStore.clear()
     setState({ status: 'signed-out', user: null, mustChangePassword: false })
-  }, [])
+    // Keyingi hisob (bir xil vkladkada) avvalgisining keshlangan
+    // ma'lumotini (guruh, o'quvchi, dashboard...) ko'rmasligi kerak —
+    // query kalitlari foydalanuvchi bo'yicha ajratilmagan.
+    void queryClient.clear()
+  }, [queryClient])
 
   // Refresh ham ishlamay qolsa — login sahifasiga.
   useEffect(() => {
@@ -95,6 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { skipAuth: true },
         )
         tokenStore.save(response)
+        // Oldingi hisobdan qolgan kesh bo'lishi mumkin (masalan avvalgi
+        // sessiya to'liq tozalanmagan bo'lsa) — yangi foydalanuvchi doim
+        // toza holatdan boshlaydi.
+        queryClient.clear()
         applyUser(response.user)
       },
 
@@ -109,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [state, applyUser, signOutLocally],
+    [state, applyUser, signOutLocally, queryClient],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

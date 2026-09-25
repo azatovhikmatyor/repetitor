@@ -3,7 +3,9 @@ import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/field'
+import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { useToast } from '@/components/ui/toast'
+import { useT } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/auth-context'
 
 /** Kirish, ro'yxatdan o'tish va parol tiklash sahifalarining umumiy ramkasi. */
@@ -34,6 +36,10 @@ export function AuthLayout({
         </div>
 
         {footer && <div className="mt-4 text-center text-sm text-slate-500">{footer}</div>}
+
+        <div className="mt-4 flex justify-center">
+          <LanguageSwitcher />
+        </div>
       </div>
     </div>
   )
@@ -42,6 +48,7 @@ export function AuthLayout({
 export function LoginPage() {
   const { login } = useAuth()
   const toast = useToast()
+  const t = useT()
   const [form, setForm] = useState({ login: '', password: '' })
   const [busy, setBusy] = useState(false)
 
@@ -61,38 +68,38 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Repetitor"
-      subtitle="Guruh, davomat va to&rsquo;lov &mdash; bir joyda"
+      title={t.auth.appName}
+      subtitle={t.auth.tagline}
       footer={
         <>
-          Hisobingiz yo&rsquo;qmi?{' '}
+          {t.auth.noAccount}{' '}
           <Link to="/register" className="font-medium text-brand-700 hover:underline">
-            Ro&rsquo;yxatdan o&rsquo;tish
+            {t.auth.registerLink}
           </Link>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4">
         <Input
-          label="Username, email yoki telefon"
+          label={t.auth.usernameLabel}
           value={form.login}
           autoComplete="username"
           autoFocus
           onChange={(event) => setForm({ ...form, login: event.target.value })}
         />
         <Input
-          label="Parol"
+          label={t.auth.passwordLabel}
           type="password"
           value={form.password}
           autoComplete="current-password"
           onChange={(event) => setForm({ ...form, password: event.target.value })}
         />
         <Button type="submit" className="w-full" loading={busy}>
-          Kirish
+          {t.auth.login}
         </Button>
         <p className="text-center">
           <Link to="/forgot-password" className="text-sm text-slate-500 hover:underline">
-            Parolni unutdingizmi?
+            {t.auth.forgotPassword}
           </Link>
         </p>
       </form>

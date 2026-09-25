@@ -22,6 +22,7 @@ import {
 } from '@/lib/api/queries'
 import type { StudentAttendanceEntry, StudentDetail } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { formatDate, money, monthName, percent } from '@/lib/format'
 import { attendanceLabel, chargeStateLabel, chargeStateTone } from '@/lib/labels'
 
@@ -51,6 +52,7 @@ export function StudentDetailPage() {
   const { studentId } = useParams()
   const id = Number(studentId)
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
 
   const student = useQuery(studentQuery(id))
@@ -103,7 +105,7 @@ export function StudentDetailPage() {
         to="/students"
         className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
       >
-        &lsaquo; O&rsquo;quvchilar
+        &lsaquo; {t.students.detail.backLabel}
       </Link>
 
       <div className="space-y-6">
@@ -116,7 +118,7 @@ export function StudentDetailPage() {
                 <button
                   type="button"
                   onClick={() => setPhoto(true)}
-                  title="Rasmni o&rsquo;zgartirish"
+                  title={t.students.detail.changePhoto}
                   className="group relative rounded-full ring-4 ring-white"
                 >
                   <Avatar
@@ -138,38 +140,51 @@ export function StudentDetailPage() {
                   )}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     {data.is_active ? (
-                      <Badge tone="paid">Faol</Badge>
+                      <Badge tone="paid">{t.students.detail.active}</Badge>
                     ) : (
-                      <Badge tone="unpaid">Bloklangan</Badge>
+                      <Badge tone="unpaid">{t.students.detail.blocked}</Badge>
                     )}
                     {data.must_change_password && (
-                      <Badge tone="partial">Parol almashtirilmagan</Badge>
+                      <Badge tone="partial">{t.students.detail.passwordNotChanged}</Badge>
                     )}
-                    {data.birth_date && <Badge>{age(data.birth_date)} yosh</Badge>}
+                    {data.password_reset_requested && (
+                      <Badge tone="partial">{t.students.resetRequestedBadge}</Badge>
+                    )}
+                    {data.birth_date && (
+                      <Badge>
+                        {age(data.birth_date)} {t.students.detail.ageSuffix}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2 pb-1">
                 <Button variant="secondary" onClick={() => setEditing(true)}>
-                  Tahrirlash
+                  {t.students.detail.edit}
                 </Button>
-                <Button variant="ghost" onClick={() => setConfirmReset(true)}>
-                  Parolni tiklash
-                </Button>
+                {data.password_reset_requested ? (
+                  <Button variant="ghost" onClick={() => setConfirmReset(true)}>
+                    {t.students.detail.resetPassword}
+                  </Button>
+                ) : (
+                  <p className="max-w-56 self-center text-xs text-slate-400">
+                    {t.students.detail.resetPasswordUnavailable}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Tez ko'z yuguritish uchun raqamlar */}
             <div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-4">
-              <Metric label="Guruhlar" value={String(activeGroups.length)} />
+              <Metric label={t.students.detail.metricGroups} value={String(activeGroups.length)} />
               <Metric
-                label="Oyiga"
+                label={t.students.detail.metricMonthly}
                 value={money(monthlyTotal)}
-                caption="so&rsquo;m"
+                caption={t.common.somUnit}
               />
               <Metric
-                label="Davomat"
+                label={t.students.detail.metricAttendance}
                 value={overallRate === null ? '—' : percent(Math.round(overallRate))}
                 tone={
                   overallRate === null
@@ -182,9 +197,9 @@ export function StudentDetailPage() {
                 }
               />
               <Metric
-                label="Qarz"
+                label={t.students.detail.metricDebt}
                 value={money(debt)}
-                caption="so&rsquo;m"
+                caption={t.common.somUnit}
                 tone={debt > 0 ? 'unpaid' : 'paid'}
               />
             </div>
@@ -195,27 +210,33 @@ export function StudentDetailPage() {
           {/* Ma'lumotlar */}
           <div className="space-y-6">
             <Card>
-              <CardHeader title="Ma&rsquo;lumotlar" />
+              <CardHeader title={t.students.detail.infoTitle} />
               <CardBody className="space-y-3">
-                <Field label="Telefon">
+                <Field label={t.students.detail.phone} t={t}>
                   {data.phone ? (
                     <a href={`tel:${data.phone}`} className="hover:underline">
                       {data.phone}
                     </a>
                   ) : null}
                 </Field>
-                <Field label="Username">{data.username}</Field>
-                <Field label="Tug&rsquo;ilgan sana">
+                <Field label={t.students.detail.username} t={t}>
+                  {data.username}
+                </Field>
+                <Field label={t.students.detail.birthDate} t={t}>
                   {data.birth_date ? formatDate(data.birth_date) : null}
                 </Field>
-                <Field label="Maktab">{data.school}</Field>
+                <Field label={t.students.detail.school} t={t}>
+                  {data.school}
+                </Field>
 
                 <div className="border-t border-slate-100 pt-3">
                   <p className="mb-2 text-xs font-medium tracking-wide text-slate-400 uppercase">
-                    Ota-ona
+                    {t.students.detail.parentTitle}
                   </p>
-                  <Field label="Ismi">{data.parent_name}</Field>
-                  <Field label="Telefon">
+                  <Field label={t.students.detail.parentName} t={t}>
+                    {data.parent_name}
+                  </Field>
+                  <Field label={t.students.detail.parentPhone} t={t}>
                     {data.parent_phone ? (
                       <a href={`tel:${data.parent_phone}`} className="hover:underline">
                         {data.parent_phone}
@@ -227,7 +248,7 @@ export function StudentDetailPage() {
                 {data.note && (
                   <div className="border-t border-slate-100 pt-3">
                     <p className="mb-1 text-xs font-medium tracking-wide text-slate-400 uppercase">
-                      Izoh
+                      {t.students.detail.noteTitle}
                     </p>
                     <p className="text-sm whitespace-pre-line text-slate-700">
                       {data.note}
@@ -236,26 +257,26 @@ export function StudentDetailPage() {
                 )}
 
                 <p className="border-t border-slate-100 pt-3 text-xs text-slate-400">
-                  Qo&rsquo;shilgan: {formatDate(data.created_at)}
+                  {t.students.detail.joined(formatDate(data.created_at))}
                   {data.last_login_at
-                    ? ` · oxirgi kirish ${formatDate(data.last_login_at)}`
-                    : ' · hali tizimga kirmagan'}
+                    ? ` · ${t.students.detail.lastLogin(formatDate(data.last_login_at))}`
+                    : ` · ${t.students.detail.neverLoggedIn}`}
                 </p>
               </CardBody>
             </Card>
 
             <Card>
               <CardHeader
-                title="Davomat"
+                title={t.students.detail.attendanceTitle}
                 description={
                   attendance.data && attendance.data.recent.length > 0
-                    ? 'Oxirgi darslar pastda'
+                    ? t.students.detail.recentBelow
                     : undefined
                 }
               />
               {attendance.isPending && <Loading rows={2} />}
               {attendance.data?.groups.length === 0 && (
-                <EmptyState title="Hali davomat yozilmagan" />
+                <EmptyState title={t.students.detail.noAttendance} />
               )}
               {attendance.data && attendance.data.groups.length > 0 && (
                 <CardBody className="space-y-4">
@@ -274,15 +295,18 @@ export function StudentDetailPage() {
                         tone={summary.attendance_rate >= 80 ? 'paid' : 'partial'}
                       />
                       <p className="mt-1 text-xs text-slate-500">
-                        {summary.total_sessions} darsdan {summary.absent_count} tasida
-                        yo&rsquo;q
-                        {summary.late_count > 0 && `, ${summary.late_count} marta kech`}
+                        {t.students.detail.sessionsAbsences(
+                          summary.total_sessions,
+                          summary.absent_count,
+                        )}
+                        {summary.late_count > 0 &&
+                          t.students.detail.lateSuffix(summary.late_count)}
                       </p>
                     </div>
                   ))}
 
                   {attendance.data.recent.length > 0 && (
-                    <AttendanceHistory entries={attendance.data.recent} />
+                    <AttendanceHistory entries={attendance.data.recent} t={t} />
                   )}
                 </CardBody>
               )}
@@ -292,11 +316,11 @@ export function StudentDetailPage() {
           {/* O'qishi */}
           <div className="space-y-6">
             <Card>
-              <CardHeader title="Guruhlar" />
+              <CardHeader title={t.students.detail.groupsTitle} />
               {data.groups.length === 0 ? (
                 <EmptyState
-                  title="Guruhga qo&rsquo;shilmagan"
-                  description="O&rsquo;quvchi guruh sahifasidan qo&rsquo;shiladi"
+                  title={t.students.detail.noGroups}
+                  description={t.students.detail.noGroupsDesc}
                 />
               ) : (
                 <CardBody className="grid gap-3 sm:grid-cols-2">
@@ -315,13 +339,15 @@ export function StudentDetailPage() {
                         <span className="font-medium text-slate-900">
                           {group.group_name}
                         </span>
-                        {group.status !== 'active' && <Badge>Chiqarilgan</Badge>}
+                        {group.status !== 'active' && (
+                          <Badge>{t.students.detail.removedFromGroup}</Badge>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-slate-500">
                         {group.monthly_fee === 0 ? (
-                          <span className="text-brand-700">Bepul</span>
+                          <span className="text-brand-700">{t.students.detail.free}</span>
                         ) : (
-                          `${money(group.monthly_fee)} so'm / oy`
+                          t.students.detail.perMonth(money(group.monthly_fee))
                         )}
                       </p>
                     </Link>
@@ -332,12 +358,12 @@ export function StudentDetailPage() {
 
             <Card>
               <CardHeader
-                title="To&rsquo;lov tarixi"
-                description={debt > 0 ? `Jami qarz ${money(debt)} so'm` : undefined}
+                title={t.students.detail.paymentHistoryTitle}
+                description={debt > 0 ? t.students.detail.totalDebt(money(debt)) : undefined}
               />
               {payments.isPending && <Loading rows={2} />}
               {charges.length === 0 && !payments.isPending && (
-                <EmptyState title="Hali to&rsquo;lov yo&rsquo;q" />
+                <EmptyState title={t.students.detail.noPayments} />
               )}
               {charges.length > 0 && (
                 <DataTable
@@ -346,7 +372,7 @@ export function StudentDetailPage() {
                   columns={[
                     {
                       key: 'month',
-                      header: 'Oy',
+                      header: t.students.detail.colMonth,
                       primary: true,
                       cell: (charge) => (
                         <span className="whitespace-nowrap">
@@ -356,29 +382,29 @@ export function StudentDetailPage() {
                     },
                     {
                       key: 'group',
-                      header: 'Guruh',
+                      header: t.students.detail.colGroup,
                       cell: (charge) => (
                         <span className="text-slate-500">{charge.group_name}</span>
                       ),
                     },
                     {
                       key: 'due',
-                      header: 'Kutilgan',
+                      header: t.students.detail.colDue,
                       align: 'right',
                       cell: (charge) => money(charge.amount_due),
                     },
                     {
                       key: 'paid',
-                      header: "To'langan",
+                      header: t.students.detail.colPaid,
                       align: 'right',
                       cell: (charge) => money(charge.amount_paid),
                     },
                     {
                       key: 'status',
-                      header: 'Holat',
+                      header: t.students.detail.colStatus,
                       cell: (charge) => (
                         <Badge tone={chargeStateTone(charge.status, charge.amount_due)}>
-                          {chargeStateLabel(charge.status, charge.amount_due)}
+                          {chargeStateLabel(t, charge.status, charge.amount_due)}
                         </Badge>
                       ),
                     },
@@ -398,7 +424,7 @@ export function StudentDetailPage() {
         <Modal
           open
           onClose={() => setPhoto(false)}
-          title="O&rsquo;quvchi rasmi"
+          title={t.students.detail.photoModalTitle}
           width="max-w-md"
         >
           <AvatarUploader<StudentDetail>
@@ -418,9 +444,9 @@ export function StudentDetailPage() {
         onClose={() => setConfirmReset(false)}
         onConfirm={() => resetPassword.mutate()}
         loading={resetPassword.isPending}
-        title="Parolni tiklash"
-        message={`${data.full_name} uchun yangi vaqtinchalik parol beriladi va uning barcha sessiyalari yopiladi.`}
-        confirmLabel="Tiklash"
+        title={t.students.detail.resetPasswordTitle}
+        message={t.students.detail.resetPasswordMessage(data.full_name)}
+        confirmLabel={t.students.detail.resetPasswordConfirm}
       />
 
       {temporaryPassword && (
@@ -440,7 +466,13 @@ export function StudentDetailPage() {
  * aytmaydi. Standart holatda faqat kelmagan kunlar ko'rinadi, chunki
  * odatda shular qiziqtiradi.
  */
-function AttendanceHistory({ entries }: { entries: StudentAttendanceEntry[] }) {
+function AttendanceHistory({
+  entries,
+  t,
+}: {
+  entries: StudentAttendanceEntry[]
+  t: Dictionary
+}) {
   const [all, setAll] = useState(false)
   const missed = entries.filter((entry) => entry.status !== 'present')
   const shown = (all ? entries : missed).slice(0, 12)
@@ -449,17 +481,15 @@ function AttendanceHistory({ entries }: { entries: StudentAttendanceEntry[] }) {
     <div className="border-t border-slate-100 pt-4">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm font-medium text-slate-700">
-          {all ? 'Oxirgi darslar' : "Kelmagan kunlari"}
+          {all ? t.students.detail.recentLessons : t.students.detail.missedDays}
         </p>
         <Button variant="ghost" size="sm" onClick={() => setAll((value) => !value)}>
-          {all ? 'Faqat kelmaganlari' : 'Hammasi'}
+          {all ? t.students.detail.onlyMissed : t.students.detail.all}
         </Button>
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-sm text-slate-500">
-          Bitta ham dars qoldirmagan
-        </p>
+        <p className="text-sm text-slate-500">{t.students.detail.noMissed}</p>
       ) : (
         <ul className="space-y-1">
           {shown.map((entry) => (
@@ -479,7 +509,7 @@ function AttendanceHistory({ entries }: { entries: StudentAttendanceEntry[] }) {
                 {entry.group_name}
               </span>
               <Badge tone={ATTENDANCE_TONE[entry.status]}>
-                {attendanceLabel[entry.status]}
+                {attendanceLabel(t)[entry.status]}
               </Badge>
             </li>
           ))}
@@ -534,12 +564,20 @@ function Metric({
 }
 
 /** Bo'sh qiymat ham ko'rinadi — to'ldirilmagani bilinib tursin. */
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  children,
+  t,
+}: {
+  label: string
+  children: ReactNode
+  t: Dictionary
+}) {
   return (
     <div className="flex items-baseline justify-between gap-3 text-sm">
       <span className="shrink-0 text-slate-500">{label}</span>
       <span className="min-w-0 truncate text-right font-medium text-slate-800">
-        {children || <span className="font-normal text-slate-300">kiritilmagan</span>}
+        {children || <span className="font-normal text-slate-300">{t.common.notEntered}</span>}
       </span>
     </div>
   )

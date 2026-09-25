@@ -3,10 +3,27 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.api.deps import CurrentTeacher, DbSession
+from app.api.deps import CurrentStudent, CurrentTeacher, DbSession
 from app.modules.attendance import schemas, service
 
 router = APIRouter(tags=["attendance"])
+
+
+@router.get(
+    "/students/me/attendance",
+    response_model=schemas.StudentAttendanceOut,
+    summary="O'zining davomat xulosasi (o'quvchi)",
+)
+async def my_attendance(
+    db: DbSession, student: CurrentStudent
+) -> schemas.StudentAttendanceOut:
+    """Har bir guruh bo'yicha o'z davomat foizi va oxirgi darslar tarixi.
+
+    MUHIM: bu literal `/students/me/attendance` — pastdagi
+    `/students/{student_id}/attendance` dan OLDIN turishi shart, aks
+    holda "me" `student_id` sifatida o'qilib, 422 qaytaradi.
+    """
+    return await service.student_summary_self(db, student=student)
 
 
 @router.get(

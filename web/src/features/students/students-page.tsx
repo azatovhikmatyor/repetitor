@@ -17,6 +17,7 @@ import { groupsQuery, studentsQuery } from '@/lib/api/queries'
 import type { StudentListItem } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
 import { downloadCsv } from '@/lib/export'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { money } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
 
@@ -35,6 +36,7 @@ const PAGE_SIZE = 24
  */
 export function StudentsPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [groupId, setGroupId] = useState(0)
@@ -67,8 +69,8 @@ export function StudentsPage() {
   return (
     <>
       <PageHeader
-        title="O&rsquo;quvchilar"
-        description={data ? `${data.total} ta o'quvchi` : undefined}
+        title={t.students.title}
+        description={data ? t.students.countCaption(data.total) : undefined}
         actions={
           <>
             <Button
@@ -77,7 +79,15 @@ export function StudentsPage() {
               onClick={() =>
                 downloadCsv(
                   'oquvchilar',
-                  ['Ism', 'Telefon', 'Guruhlar', 'Qarz', 'Ota-ona', 'Telefon', 'Maktab'],
+                  [
+                    t.students.colName,
+                    t.students.colPhone,
+                    t.students.colGroups,
+                    t.students.colDebt,
+                    t.students.fieldParentName,
+                    t.students.fieldParentPhone,
+                    t.students.fieldSchool,
+                  ],
                   items.map((student) => [
                     student.full_name,
                     student.phone,
@@ -90,29 +100,29 @@ export function StudentsPage() {
                 )
               }
             >
-              Excel
+              {t.common.export}
             </Button>
             <div className="inline-flex rounded-lg bg-slate-100 p-1">
-            {(
-              [
-                { value: 'cards', label: 'Kartalar' },
-                { value: 'table', label: 'Jadval' },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setView(option.value)}
-                className={cn(
-                  'rounded-md px-3 py-1.5 text-sm font-medium transition',
-                  view === option.value
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+              {(
+                [
+                  { value: 'cards', label: t.students.cardsView },
+                  { value: 'table', label: t.students.tableView },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setView(option.value)}
+                  className={cn(
+                    'rounded-md px-3 py-1.5 text-sm font-medium transition',
+                    view === option.value
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700',
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </>
         }
@@ -121,7 +131,7 @@ export function StudentsPage() {
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="w-full max-w-sm">
           <Input
-            placeholder="Ism, telefon, ota-ona yoki maktab"
+            placeholder={t.students.searchPlaceholder}
             value={search}
             autoFocus
             onChange={(event) => reset(setSearch)(event.target.value)}
@@ -132,7 +142,7 @@ export function StudentsPage() {
           <Select
             value={String(groupId)}
             options={[
-              { value: '0', label: 'Barcha guruhlar' },
+              { value: '0', label: t.students.allGroups },
               ...(groups.data?.items ?? []).map((group) => ({
                 value: String(group.id),
                 label: group.name,
@@ -146,7 +156,7 @@ export function StudentsPage() {
           variant={onlyDebtors ? 'primary' : 'secondary'}
           onClick={() => reset(setOnlyDebtors)(!onlyDebtors)}
         >
-          Qarzi borlar
+          {t.students.onlyDebtors}
         </Button>
 
         {hasFilters && (
@@ -159,7 +169,7 @@ export function StudentsPage() {
               setPage(1)
             }}
           >
-            Tozalash
+            {t.students.clearFilters}
           </Button>
         )}
       </div>
@@ -170,16 +180,12 @@ export function StudentsPage() {
       {data && items.length === 0 && (
         <Card>
           <EmptyState
-            title={hasFilters ? 'Topilmadi' : "Hali o'quvchi yo'q"}
-            description={
-              hasFilters
-                ? 'Boshqa so‘z bilan qidiring yoki filtrlarni tozalang'
-                : "O'quvchilar guruh sahifasidan qo'shiladi — avval guruh oching"
-            }
+            title={hasFilters ? t.students.notFound : t.students.noneYet}
+            description={hasFilters ? t.students.filteredHint : t.students.noneYetHint}
             action={
               hasFilters ? undefined : (
                 <Link to="/groups">
-                  <Button size="sm">Guruhlarga o&rsquo;tish</Button>
+                  <Button size="sm">{t.students.goToGroups}</Button>
                 </Link>
               )
             }
@@ -191,17 +197,17 @@ export function StudentsPage() {
         <div className={cn('space-y-4', isPlaceholderData && 'opacity-60')}>
           {onlyDebtors && (
             <p className="text-sm text-slate-500">
-              Shu sahifada {debtors} ta qarzdor &middot; jami{' '}
-              <span className="font-medium text-unpaid">
-                {money(items.reduce((sum, student) => sum + student.debt, 0))} so&rsquo;m
-              </span>
+              {t.students.debtorsSummary(
+                debtors,
+                money(items.reduce((sum, student) => sum + student.debt, 0)),
+              )}
             </p>
           )}
 
           {view === 'cards' ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((student) => (
-                <StudentCard key={student.id} student={student} query={query} />
+                <StudentCard key={student.id} student={student} query={query} t={t} />
               ))}
             </div>
           ) : (
@@ -213,7 +219,7 @@ export function StudentsPage() {
                 columns={[
                   {
                     key: 'name',
-                    header: 'Ism',
+                    header: t.students.colName,
                     primary: true,
                     cell: (student) => (
                       <span className="flex items-center gap-2.5">
@@ -223,12 +229,15 @@ export function StudentsPage() {
                           className="size-8 text-xs"
                         />
                         <Highlight text={student.full_name} query={query} />
+                        {student.password_reset_requested && (
+                          <Badge tone="partial">{t.students.resetRequestedBadge}</Badge>
+                        )}
                       </span>
                     ),
                   },
                   {
                     key: 'phone',
-                    header: 'Telefon',
+                    header: t.students.colPhone,
                     cell: (student) => (
                       <span className="text-slate-500">
                         {student.phone ? (
@@ -241,7 +250,7 @@ export function StudentsPage() {
                   },
                   {
                     key: 'groups',
-                    header: 'Guruhlar',
+                    header: t.students.colGroups,
                     cell: (student) => (
                       <span className="text-slate-500">
                         {student.group_names.join(', ') || '—'}
@@ -250,7 +259,7 @@ export function StudentsPage() {
                   },
                   {
                     key: 'debt',
-                    header: 'Qarz',
+                    header: t.students.colDebt,
                     align: 'right',
                     cell: (student) =>
                       student.debt > 0 ? (
@@ -282,7 +291,7 @@ export function StudentsPage() {
               page={data.page}
               pages={data.pages}
               total={data.total}
-              label="o&rsquo;quvchi"
+              label={t.students.pageLabel}
               onChange={setPage}
             />
           </Card>
@@ -295,21 +304,25 @@ export function StudentsPage() {
 function StudentCard({
   student,
   query,
+  t,
 }: {
   student: StudentListItem
   query: string
+  t: Dictionary
 }) {
   // Qidiruv ism yoki telefondan topmagan bo'lsa, qayeridan topilganini
   // ko'rsatamiz — "nega bu chiqdi?" degan savol qolmasin.
   const visible = matches(student.full_name, query) || matches(student.phone, query)
   const hidden = visible
     ? null
-    : ([
-        ['Ota-ona', student.parent_name],
-        ['Ota-ona telefoni', student.parent_phone],
-        ['Maktab', student.school],
-        ['Username', student.username],
-      ] as const).find(([, value]) => matches(value, query))
+    : (
+        [
+          [t.students.fieldParentName, student.parent_name],
+          [t.students.fieldParentPhone, student.parent_phone],
+          [t.students.fieldSchool, student.school],
+          [t.students.fieldUsername, student.username],
+        ] as const
+      ).find(([, value]) => matches(value, query))
 
   return (
     <Link
@@ -341,7 +354,7 @@ function StudentCard({
 
       <div className="mt-3 flex flex-wrap gap-1">
         {student.group_names.length === 0 ? (
-          <span className="text-xs text-slate-400">Guruhga qo&rsquo;shilmagan</span>
+          <span className="text-xs text-slate-400">{t.students.noGroup}</span>
         ) : (
           student.group_names.map((name) => (
             <span
@@ -351,6 +364,9 @@ function StudentCard({
               {name}
             </span>
           ))
+        )}
+        {student.password_reset_requested && (
+          <Badge tone="partial">{t.students.resetRequestedBadge}</Badge>
         )}
       </div>
 

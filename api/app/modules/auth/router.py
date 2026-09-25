@@ -165,6 +165,23 @@ async def forgot_password(
 
 
 @router.post(
+    "/password/request-reset-from-teacher",
+    response_model=Message,
+    summary="O'quvchi: o'qituvchidan parol so'rash",
+)
+async def request_student_reset(
+    data: schemas.ForgotPasswordRequest, db: DbSession
+) -> Message:
+    """Kira olmayotgan o'quvchi shu orqali o'qituvchisiga xabar beradi.
+
+    Kod yubormaydi — o'qituvchi so'rovni o'quvchi kartasida ko'radi va
+    yangi vaqtinchalik parolni o'zi beradi. Javob hisob mavjudligini
+    oshkor qilmaydi.
+    """
+    return await service.request_student_password_reset(db, data.login)
+
+
+@router.post(
     "/password/reset", response_model=Message, summary="Kod bilan yangi parol qo'yish"
 )
 async def reset_password(data: schemas.ResetPasswordRequest, db: DbSession) -> Message:

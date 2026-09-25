@@ -11,17 +11,8 @@ import { api, ApiError } from '@/lib/api/client'
 import { groupScheduleQuery } from '@/lib/api/queries'
 import type { GroupSchedule, ScheduleVersion, SlotInput } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { formatDate, isoDate } from '@/lib/format'
-
-const WEEKDAYS = [
-  'Dushanba',
-  'Seshanba',
-  'Chorshanba',
-  'Payshanba',
-  'Juma',
-  'Shanba',
-  'Yakshanba',
-]
 
 /** `08:00:00` → `08:00` (HTML `type=time` shu ko'rinishni kutadi). */
 function hhmm(value: string | null | undefined): string {
@@ -58,12 +49,13 @@ export function ScheduleModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const schedule = useQuery(groupScheduleQuery(groupId))
 
   if (schedule.isPending) {
     return (
-      <Modal open onClose={onClose} title="Dars jadvali">
+      <Modal open onClose={onClose} title={t.groups.schedule.title}>
         <Loading rows={3} />
       </Modal>
     )
@@ -71,7 +63,7 @@ export function ScheduleModal({
 
   if (schedule.error) {
     return (
-      <Modal open onClose={onClose} title="Dars jadvali">
+      <Modal open onClose={onClose} title={t.groups.schedule.title}>
         <ErrorState error={schedule.error} onRetry={() => void schedule.refetch()} />
       </Modal>
     )
@@ -81,11 +73,12 @@ export function ScheduleModal({
     <ScheduleForm
       groupId={groupId}
       schedule={schedule.data}
+      t={t}
       onClose={onClose}
       onSaved={async () => {
         await queryClient.invalidateQueries({ queryKey: ['group', groupId] })
         await queryClient.invalidateQueries({ queryKey: ['groups'] })
-        toast.success('Jadval saqlandi')
+        toast.success(t.groups.schedule.savedToast)
         onClose()
       }}
     />
@@ -95,11 +88,13 @@ export function ScheduleModal({
 function ScheduleForm({
   groupId,
   schedule,
+  t,
   onClose,
   onSaved,
 }: {
   groupId: number
   schedule: GroupSchedule
+  t: Dictionary
   onClose: () => void
   onSaved: () => Promise<void>
 }) {
@@ -123,7 +118,7 @@ function ScheduleForm({
     },
     onSuccess: onSaved,
     onError: (issue) => {
-      setError(issue instanceof ApiError ? issue.message : 'Xatolik')
+      setError(issue instanceof ApiError ? issue.message : t.groups.schedule.genericError)
       toast.error(issue)
     },
   })
@@ -150,26 +145,26 @@ function ScheduleForm({
     <Modal
       open
       onClose={onClose}
-      title="Dars jadvali"
+      title={t.groups.schedule.title}
       width="max-w-2xl"
-      description="Bir kunda bir nechta dars bo'lishi mumkin — kunga yana qo'shing"
+      description={t.groups.schedule.description}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button
             loading={save.isPending}
             disabled={incomplete}
             onClick={() => save.mutate()}
           >
-            Saqlash
+            {t.common.save}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        {WEEKDAYS.map((name, weekday) => {
+        {t.weekdays.map((name, weekday) => {
           const dayslots = slots
             .map((slot, index) => ({ slot, index }))
             .filter((item) => item.slot.weekday === weekday)
@@ -194,7 +189,7 @@ function ScheduleForm({
                   {name}
                 </span>
                 <Button variant="ghost" size="sm" onClick={() => addSlot(weekday)}>
-                  + Dars
+                  {t.groups.schedule.addLesson}
                 </Button>
               </div>
 
@@ -202,7 +197,7 @@ function ScheduleForm({
                 <div key={index} className="mt-2 flex flex-wrap items-end gap-2">
                   <div className="w-28">
                     <Input
-                      label="Boshlanish"
+                      label={t.groups.schedule.startLabel}
                       type="time"
                       value={slot.start_time}
                       onChange={(event) =>
@@ -212,7 +207,7 @@ function ScheduleForm({
                   </div>
                   <div className="w-28">
                     <Input
-                      label="Tugash"
+                      label={t.groups.schedule.endLabel}
                       type="time"
                       value={slot.end_time}
                       onChange={(event) =>
@@ -224,9 +219,9 @@ function ScheduleForm({
                     variant="danger-ghost"
                     size="sm"
                     onClick={() => remove(index)}
-                    aria-label="Darsni olib tashlash"
+                    aria-label={t.groups.schedule.removeLesson}
                   >
-                    O&rsquo;chirish
+                    {t.groups.schedule.removeBtn}
                   </Button>
                 </div>
               ))}
@@ -237,7 +232,7 @@ function ScheduleForm({
         <div className="rounded-lg border border-slate-200 p-3">
           <div className="w-44">
             <Input
-              label="Qaysi sanadan"
+              label={t.groups.schedule.fromDateLabel}
               type="date"
               value={effectiveFrom}
               onChange={(event) => setEffectiveFrom(event.target.value)}
@@ -245,8 +240,7 @@ function ScheduleForm({
           </div>
           <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500">
             <Icon name="warning" className="mt-px size-4 shrink-0 text-partial" />
-            Eski jadval o&rsquo;chmaydi: shu sanagacha bo&rsquo;lgan darslar va
-            hisobotlar o&rsquo;zgarmaydi.
+            {t.groups.schedule.warning}
           </p>
         </div>
 
@@ -259,7 +253,9 @@ function ScheduleForm({
               size="sm"
               onClick={() => setShowHistory((open) => !open)}
             >
-              {showHistory ? 'Tarixni yashirish' : `Tarix (${schedule.history.length})`}
+              {showHistory
+                ? t.groups.schedule.hideHistory
+                : t.groups.schedule.showHistory(schedule.history.length)}
             </Button>
 
             {showHistory && (
@@ -274,7 +270,7 @@ function ScheduleForm({
                       {formatDate(version.effective_from)} &mdash;{' '}
                       {version.effective_to
                         ? formatDate(version.effective_to)
-                        : 'hozirgacha'}
+                        : t.groups.schedule.untilNow}
                     </span>
                   </li>
                 ))}

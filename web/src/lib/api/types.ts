@@ -93,6 +93,8 @@ export interface StudentSummary {
   status: UserStatus
   full_name: string
   is_active: boolean
+  /** True — o'quvchi appga kirolmay o'qituvchisidan parol so'ragan. */
+  password_reset_requested: boolean
 }
 
 export type EnrollmentStatus = 'active' | 'inactive'

@@ -1,0 +1,7 @@
+# Shaxsiy kompyuterda vaqtincha "desktop app" sifatida sinash uchun
+# (`desktop.py`). Prod/deploy uchun kerak emas — shuning uchun
+# `requirements.txt`ga aralashtirilmagan.
+-r requirements.txt
+
+pywebview==6.2.1
+pythonnet==3.1.0

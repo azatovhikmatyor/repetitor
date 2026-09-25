@@ -16,11 +16,14 @@ import { GroupDetailPage } from '@/features/groups/group-detail-page'
 import { GroupsPage } from '@/features/groups/groups-page'
 import { GroupPaymentsPage } from '@/features/payments/group-payments-page'
 import { ProfilePage } from '@/features/profile/profile-page'
+import { SettingsPage } from '@/features/settings/settings-page'
 import { ExpensesPage } from '@/features/expenses/expenses-page'
 import { DebtorsPage } from '@/features/payments/debtors-page'
 import { ReportsPage } from '@/features/reports/reports-page'
 import { StudentDetailPage } from '@/features/students/student-detail-page'
 import { StudentsPage } from '@/features/students/students-page'
+import { MyAttendancePage } from '@/features/student-portal/attendance-page'
+import { MyPaymentsPage } from '@/features/student-portal/payments-page'
 
 function FullPageSpinner() {
   return (
@@ -63,7 +66,9 @@ function RequireAnonymous() {
  */
 function RoleHome() {
   const { user } = useAuth()
-  return user?.role === 'super_admin' ? <Navigate to="/admin" replace /> : <DashboardPage />
+  if (user?.role === 'super_admin') return <Navigate to="/admin" replace />
+  if (user?.role === 'student') return <Navigate to="/my/attendance" replace />
+  return <DashboardPage />
 }
 
 function RequireAdmin() {
@@ -103,6 +108,9 @@ export const router = createBrowserRouter([
           { path: 'expenses', element: <ExpensesPage /> },
           { path: 'reports', element: <ReportsPage /> },
           { path: 'profile', element: <ProfilePage /> },
+          { path: 'settings', element: <SettingsPage /> },
+          { path: 'my/attendance', element: <MyAttendancePage /> },
+          { path: 'my/payments', element: <MyPaymentsPage /> },
           {
             element: <RequireAdmin />,
             children: [

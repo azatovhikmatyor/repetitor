@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/modal'
 import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { debtorsQuery } from '@/lib/api/queries'
 import type { Charge, Debtor } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { money } from '@/lib/format'
 import { currentPeriod, type Period } from '@/lib/period'
 
@@ -43,6 +44,7 @@ export function QuickPaymentModal({
   period?: Period
   onClose: () => void
 }) {
+  const t = useT()
   const [selected, setSelected] = useState<Debtor | null>(debtor ?? null)
   const [search, setSearch] = useState('')
 
@@ -68,10 +70,10 @@ export function QuickPaymentModal({
   )
 
   return (
-    <Modal open onClose={onClose} title="To&rsquo;lov qabul qilish" description="Qarzdorlar">
+    <Modal open onClose={onClose} title={t.payments.quick.title} description={t.payments.quick.description}>
       <div className="space-y-3">
         <Input
-          placeholder="O&rsquo;quvchi ismi"
+          placeholder={t.payments.quick.searchPlaceholder}
           value={search}
           autoFocus
           onChange={(event) => setSearch(event.target.value)}
@@ -82,10 +84,8 @@ export function QuickPaymentModal({
 
         {data && items.length === 0 && (
           <EmptyState
-            title={query ? 'Topilmadi' : 'Qarzdor yo&rsquo;q'}
-            description={
-              query ? undefined : 'Bu oy uchun hamma to&rsquo;lagan'
-            }
+            title={query ? t.payments.quick.notFound : t.payments.debtors.noDebtors}
+            description={query ? undefined : t.payments.debtors.allPaid}
           />
         )}
 

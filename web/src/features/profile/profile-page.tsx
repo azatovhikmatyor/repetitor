@@ -13,13 +13,13 @@ import { useToast } from '@/components/ui/toast'
 import { api, ApiError } from '@/lib/api/client'
 import type { User } from '@/lib/api/types'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useT } from '@/lib/i18n'
 import { formatDateTime } from '@/lib/format'
-
-
 
 export function ProfilePage() {
   const { user, setUser, logout } = useAuth()
   const toast = useToast()
+  const t = useT()
   const [form, setForm] = useState({
     first_name: user?.first_name ?? '',
     last_name: user?.last_name ?? '',
@@ -35,7 +35,7 @@ export function ProfilePage() {
     onSuccess: (updated) => {
       setUser(updated)
       setErrors({})
-      toast.success('Saqlandi')
+      toast.success(t.profile.savedToast)
     },
     onError: (error) => {
       if (error instanceof ApiError) setErrors(error.fieldErrors)
@@ -50,13 +50,19 @@ export function ProfilePage() {
   return (
     <>
       <PageHeader
-        title="Profil"
-        description={user.role === 'super_admin' ? 'Super admin' : "O'qituvchi"}
+        title={t.profile.title}
+        description={
+          user.role === 'super_admin'
+            ? t.nav.superAdminRole
+            : user.role === 'student'
+              ? t.nav.studentRole
+              : t.nav.teacherRole
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Ma&rsquo;lumotlarim" />
+          <CardHeader title={t.profile.infoTitle} />
           <CardBody className="space-y-4">
             <AvatarUploader<User>
               src={user.avatar_url}
@@ -67,7 +73,7 @@ export function ProfilePage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="Ism"
+                label={t.profile.firstName}
                 value={form.first_name}
                 error={errors.first_name}
                 onChange={(event) =>
@@ -75,7 +81,7 @@ export function ProfilePage() {
                 }
               />
               <Input
-                label="Familiya"
+                label={t.profile.lastName}
                 value={form.last_name}
                 error={errors.last_name}
                 onChange={(event) =>
@@ -85,24 +91,24 @@ export function ProfilePage() {
             </div>
 
             <Input
-              label="Sharifi"
+              label={t.profile.middleName}
               value={form.middle_name}
               error={errors.middle_name}
-              placeholder="Otasining ismi"
+              placeholder={t.profile.middlePlaceholder}
               onChange={(event) =>
                 setForm({ ...form, middle_name: event.target.value })
               }
             />
 
             <Input
-              label="Email"
+              label={t.profile.email}
               type="email"
               value={form.email}
               error={errors.email}
               onChange={(event) => setForm({ ...form, email: event.target.value })}
             />
             <Input
-              label="Telefon"
+              label={t.profile.phone}
               value={form.phone}
               error={errors.phone}
               onChange={(event) => setForm({ ...form, phone: event.target.value })}
@@ -110,60 +116,56 @@ export function ProfilePage() {
 
             {!canResetAlone && (
               <p className="rounded-lg bg-partial/10 px-3 py-2 text-xs text-slate-700">
-                Email yoki telefon qo&rsquo;ymasangiz, parolni unutganda faqat
-                administrator tiklab bera oladi.
+                {t.profile.resetAloneHint}
               </p>
             )}
 
             <Button loading={save.isPending} onClick={() => save.mutate()}>
-              Saqlash
+              {t.profile.save}
             </Button>
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Hisob" />
+          <CardHeader title={t.profile.accountTitle} />
           <CardBody className="space-y-4">
             <dl className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <dt className="text-slate-500">Username</dt>
+                <dt className="text-slate-500">{t.profile.username}</dt>
                 <dd className="font-medium text-slate-800">{user.username}</dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-500">Holat</dt>
+                <dt className="text-slate-500">{t.profile.status}</dt>
                 <dd>
                   {user.status === 'active' ? (
-                    <Badge tone="paid">Faol</Badge>
+                    <Badge tone="paid">{t.profile.statusActive}</Badge>
                   ) : user.status === 'pending' ? (
-                    <Badge tone="partial">Tasdiq kutmoqda</Badge>
+                    <Badge tone="partial">{t.profile.statusPending}</Badge>
                   ) : (
-                    <Badge tone="unpaid">Bloklangan</Badge>
+                    <Badge tone="unpaid">{t.profile.statusBlocked}</Badge>
                   )}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-slate-500">Oxirgi kirish</dt>
+                <dt className="text-slate-500">{t.profile.lastLogin}</dt>
                 <dd className="text-slate-800">
                   {user.last_login_at ? formatDateTime(user.last_login_at) : '—'}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-slate-500">Ro&rsquo;yxatdan o&rsquo;tgan</dt>
+                <dt className="text-slate-500">{t.profile.registeredAt}</dt>
                 <dd className="text-slate-800">{formatDateTime(user.created_at)}</dd>
               </div>
             </dl>
 
-            <p className="text-xs text-slate-500">
-              Username o&rsquo;zgartirilmaydi &mdash; u hisobingizning barqaror
-              identifikatori.
-            </p>
+            <p className="text-xs text-slate-500">{t.profile.usernameFixedNotice}</p>
 
             <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <Link to="/change-password">
-                <Button variant="secondary">Parolni o&rsquo;zgartirish</Button>
+                <Button variant="secondary">{t.profile.changePassword}</Button>
               </Link>
               <Button variant="danger-ghost" onClick={() => setConfirmLogout(true)}>
-                Chiqish
+                {t.logoutModal.confirmLabel}
               </Button>
             </div>
           </CardBody>
@@ -175,9 +177,9 @@ export function ProfilePage() {
         onClose={() => setConfirmLogout(false)}
         onConfirm={() => void logout()}
         destructive
-        title="Tizimdan chiqish"
-        message="Hisobingizdan chiqasiz. Qaytadan kirish uchun username va parol kerak bo'ladi."
-        confirmLabel="Chiqish"
+        title={t.logoutModal.title}
+        message={t.logoutModal.message}
+        confirmLabel={t.logoutModal.confirmLabel}
       />
     </>
   )

@@ -426,9 +426,23 @@ async def monthly_report(
 async def student_summary(
     db: AsyncSession, *, teacher_id: int, student_id: int
 ) -> schemas.StudentAttendanceOut:
-    """O'quvchining har bir guruhdagi davomat foizi."""
+    """O'quvchining har bir guruhdagi davomat foizi (o'qituvchi ko'rinishi)."""
     student = await get_owned_student(db, teacher_id=teacher_id, student_id=student_id)
+    return await _student_attendance_summary(db, student=student, teacher_id=teacher_id)
 
+
+async def student_summary_self(
+    db: AsyncSession, *, student: User
+) -> schemas.StudentAttendanceOut:
+    """O'quvchi o'zining davomat xulosasini ko'radi."""
+    return await _student_attendance_summary(
+        db, student=student, teacher_id=student.teacher_id
+    )
+
+
+async def _student_attendance_summary(
+    db: AsyncSession, *, student: User, teacher_id: int | None
+) -> schemas.StudentAttendanceOut:
     rows = await db.execute(
         select(
             Group.id,

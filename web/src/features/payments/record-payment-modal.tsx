@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
 import { qk } from '@/lib/api/queries'
 import type { Charge, PaymentMethod } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { money, monthName } from '@/lib/format'
 import { methodOptions } from '@/lib/labels'
 import type { Period } from '@/lib/period'
@@ -31,6 +32,7 @@ export function RecordPaymentModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
 
   const remaining = charge.balance > 0 ? charge.balance : charge.amount_due
@@ -52,7 +54,7 @@ export function RecordPaymentModal({
       await queryClient.invalidateQueries({ queryKey: ['group', groupId, 'payments'] })
       await queryClient.invalidateQueries({ queryKey: qk.dashboard })
       await queryClient.invalidateQueries({ queryKey: ['student', charge.student_id] })
-      toast.success("To'lov qayd etildi")
+      toast.success(t.payments.record.savedToast)
       onClose()
     },
     onError: (error) => toast.error(error),
@@ -65,30 +67,37 @@ export function RecordPaymentModal({
       open
       onClose={onClose}
       title={charge.full_name}
-      description={`${monthName(period.month)} ${period.year} · kutilgan ${money(charge.amount_due)} so'm`}
+      description={t.payments.record.descriptionLine(
+        monthName(period.month),
+        period.year,
+        money(charge.amount_due),
+      )}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.payments.record.cancel}
           </Button>
           <Button
             loading={mutation.isPending}
             disabled={parsed <= 0}
             onClick={() => mutation.mutate()}
           >
-            Saqlash
+            {t.payments.record.save}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <MoneyInput
-          label="Summa"
+          label={t.payments.record.amountLabel}
           value={amount}
           autoFocus
           hint={
             charge.amount_paid > 0
-              ? `Allaqachon to'langan: ${money(charge.amount_paid)} · qarz: ${money(charge.balance)}`
+              ? t.payments.record.alreadyPaidHint(
+                  money(charge.amount_paid),
+                  money(charge.balance),
+                )
               : undefined
           }
           onChange={setAmount}
@@ -96,25 +105,25 @@ export function RecordPaymentModal({
 
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => setAmount(String(remaining))}>
-            To&rsquo;liq ({money(remaining)})
+            {t.payments.record.fullAmount(money(remaining))}
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setAmount(String(Math.floor(remaining / 2)))}
           >
-            Yarmi
+            {t.payments.record.half}
           </Button>
         </div>
 
         <Select
-          label="To&rsquo;lov turi"
+          label={t.payments.record.methodLabel}
           value={method}
-          options={methodOptions}
+          options={methodOptions(t)}
           onChange={(event) => setMethod(event.target.value as PaymentMethod)}
         />
 
-        <Textarea label="Izoh" rows={2} value={note} onChange={setNote} />
+        <Textarea label={t.payments.record.noteLabel} rows={2} value={note} onChange={setNote} />
       </div>
     </Modal>
   )

@@ -58,6 +58,8 @@ export const qk = {
   student: (id: number) => ['student', id] as const,
   studentAttendance: (id: number) => ['student', id, 'attendance'] as const,
   studentPayments: (id: number) => ['student', id, 'payments'] as const,
+  myAttendance: ['me', 'attendance'] as const,
+  myPayments: ['me', 'payments'] as const,
   monthlyReport: (period: Period) => ['report', 'monthly', periodKey(period)] as const,
   revenueTrend: (months: number) => ['report', 'revenue', months] as const,
   debtors: (period: Period) => ['report', 'debtors', periodKey(period)] as const,
@@ -194,6 +196,22 @@ export const studentPaymentsQuery = (id: number) =>
     queryKey: qk.studentPayments(id),
     queryFn: ({ signal }) =>
       api.get<StudentCharge[]>(`/students/${id}/payments`, undefined, signal),
+  })
+
+/** O'quvchining o'ziga: o'z davomat xulosasi. */
+export const myAttendanceQuery = () =>
+  queryOptions({
+    queryKey: qk.myAttendance,
+    queryFn: ({ signal }) =>
+      api.get<StudentAttendance>('/students/me/attendance', undefined, signal),
+  })
+
+/** O'quvchining o'ziga: o'z to'lov tarixi. */
+export const myPaymentsQuery = () =>
+  queryOptions({
+    queryKey: qk.myPayments,
+    queryFn: ({ signal }) =>
+      api.get<StudentCharge[]>('/students/me/payments', undefined, signal),
   })
 
 export const monthlyReportQuery = (period: Period) =>

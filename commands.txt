@@ -13,3 +13,10 @@ password: Admin12345
 
 
 npm run dev
+
+
+fteacher
+teacher12345
+
++998933000014
+student12345

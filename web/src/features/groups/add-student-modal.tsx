@@ -10,6 +10,7 @@ import { api, ApiError } from '@/lib/api/client'
 import { qk, studentsQuery } from '@/lib/api/queries'
 import type { AddStudentResponse, StudentSummary } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 import { FeeFields, feeCreatePayload, initialFee, type FeeDraft } from './fee-fields'
 
@@ -31,6 +32,7 @@ export function AddStudentModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const [mode, setMode] = useState<'new' | 'existing'>('new')
   const [form, setForm] = useState({ first_name: '', last_name: '', phone: '' })
@@ -60,7 +62,7 @@ export function AddStudentModal({
       if (result.temporary_password) {
         setTemporaryPassword(result.temporary_password)
       } else {
-        toast.success("O'quvchi qo'shildi")
+        toast.success(t.groups.addStudent.addedToast)
         onClose()
       }
     },
@@ -86,12 +88,12 @@ export function AddStudentModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="O&rsquo;quvchi qo&rsquo;shish"
+      title={t.groups.addStudent.title}
       footer={
         mode === 'new' ? (
           <>
             <Button variant="secondary" onClick={onClose}>
-              Bekor qilish
+              {t.common.cancel}
             </Button>
             <Button
               loading={mutation.isPending}
@@ -104,7 +106,7 @@ export function AddStudentModal({
                 })
               }
             >
-              Qo&rsquo;shish
+              {t.groups.addStudent.addBtn}
             </Button>
           </>
         ) : undefined
@@ -121,7 +123,7 @@ export function AddStudentModal({
               mode === value ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500',
             )}
           >
-            {value === 'new' ? "Yangi o'quvchi" : "Mavjud o'quvchi"}
+            {value === 'new' ? t.groups.addStudent.newTab : t.groups.addStudent.existingTab}
           </button>
         ))}
       </div>
@@ -130,25 +132,25 @@ export function AddStudentModal({
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Ism"
+              label={t.groups.addStudent.firstName}
               value={form.first_name}
               error={errors.first_name}
               autoFocus
               onChange={(event) => setForm({ ...form, first_name: event.target.value })}
             />
             <Input
-              label="Familiya"
+              label={t.groups.addStudent.lastName}
               value={form.last_name}
               error={errors.last_name}
               onChange={(event) => setForm({ ...form, last_name: event.target.value })}
             />
           </div>
           <Input
-            label="Telefon"
+            label={t.groups.addStudent.phone}
             value={form.phone}
             error={errors.phone}
-            placeholder="+998 90 123 45 67"
-            hint="O&rsquo;quvchi shu raqam bilan tizimga kiradi"
+            placeholder={t.groups.addStudent.phonePlaceholder}
+            hint={t.groups.addStudent.phoneHint}
             onChange={(event) => setForm({ ...form, phone: event.target.value })}
           />
 
@@ -157,11 +159,11 @@ export function AddStudentModal({
       ) : (
         <div className="space-y-3">
           <Input
-            label="Qidirish"
+            label={t.groups.addStudent.searchLabel}
             value={search}
             autoFocus
-            placeholder="Ism yoki telefon"
-            hint="Boshqa guruhingizdagi o&rsquo;quvchini toping"
+            placeholder={t.groups.addStudent.searchPlaceholder}
+            hint={t.groups.addStudent.searchHint}
             onChange={(event) => setSearch(event.target.value)}
           />
 
@@ -170,14 +172,16 @@ export function AddStudentModal({
           <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200">
             {search.trim().length < 2 ? (
               <p className="px-4 py-6 text-center text-sm text-slate-400">
-                Kamida 2 ta belgi kiriting
+                {t.groups.addStudent.minChars}
               </p>
             ) : searchResults.isFetching ? (
               <div className="grid place-items-center py-6">
                 <Spinner />
               </div>
             ) : (searchResults.data?.items.length ?? 0) === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-slate-400">Topilmadi</p>
+              <p className="px-4 py-6 text-center text-sm text-slate-400">
+                {t.groups.addStudent.notFound}
+              </p>
             ) : (
               searchResults.data?.items.map((student: StudentSummary) => (
                 <button
@@ -224,13 +228,14 @@ export function TemporaryPasswordModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
 
   return (
     <Modal
       open
       onClose={onClose}
-      title="Vaqtinchalik parol"
-      description="Bu parolni o&rsquo;quvchiga ayting. U boshqa ko&rsquo;rsatilmaydi."
+      title={t.groups.addStudent.tempPasswordTitle}
+      description={t.groups.addStudent.tempPasswordDesc}
       width="max-w-sm"
       footer={
         <>
@@ -238,21 +243,19 @@ export function TemporaryPasswordModal({
             variant="secondary"
             onClick={() => {
               void navigator.clipboard.writeText(password)
-              toast.success('Nusxa olindi')
+              toast.success(t.groups.addStudent.copied)
             }}
           >
-            Nusxa olish
+            {t.groups.addStudent.copy}
           </Button>
-          <Button onClick={onClose}>Yopish</Button>
+          <Button onClick={onClose}>{t.common.close}</Button>
         </>
       }
     >
       <p className="rounded-lg bg-slate-50 py-4 text-center text-2xl font-bold tracking-[0.3em] text-slate-900">
         {password}
       </p>
-      <p className="mt-3 text-xs text-slate-500">
-        O&rsquo;quvchi birinchi kirishda parolni almashtirishi shart.
-      </p>
+      <p className="mt-3 text-xs text-slate-500">{t.groups.addStudent.mustChangeNotice}</p>
     </Modal>
   )
 }

@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/states'
 import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
 import type { Teacher, TeacherDeletePreview } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { money } from '@/lib/format'
 
 /**
@@ -26,6 +27,7 @@ export function DeleteTeacherModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const [confirm, setConfirm] = useState('')
   const [backedUp, setBackedUp] = useState(false)
@@ -52,7 +54,7 @@ export function DeleteTeacherModal({
       link.click()
       URL.revokeObjectURL(url)
       setBackedUp(true)
-      toast.success('Zaxira nusxa yuklab olindi')
+      toast.success(t.admin.deleteModal.backupDownloadedToast)
     },
     onError: (error) => toast.error(error),
   })
@@ -64,7 +66,7 @@ export function DeleteTeacherModal({
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin'] })
-      toast.success("Hisob va unga tegishli barcha ma'lumot o'chirildi")
+      toast.success(t.admin.deleteModal.deletedToast)
       onClose()
     },
     onError: (error) => toast.error(error),
@@ -76,12 +78,12 @@ export function DeleteTeacherModal({
     <Modal
       open
       onClose={onClose}
-      title="Hisobni butunlay o&rsquo;chirish"
+      title={t.admin.deleteModal.title}
       description={`${teacher.full_name} (${teacher.username})`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.admin.deleteModal.cancel}
           </Button>
           <Button
             variant="danger"
@@ -89,7 +91,7 @@ export function DeleteTeacherModal({
             loading={deleteMutation.isPending}
             onClick={() => deleteMutation.mutate()}
           >
-            O&rsquo;chirish
+            {t.admin.deleteModal.confirmDelete}
           </Button>
         </>
       }
@@ -97,7 +99,7 @@ export function DeleteTeacherModal({
       <div className="space-y-4">
         <div className="rounded-lg border border-unpaid/30 bg-unpaid/5 p-3">
           <p className="text-sm font-medium text-unpaid">
-            Bu amalni qaytarib bo&rsquo;lmaydi
+            {t.admin.deleteModal.irreversible}
           </p>
           {preview.isPending ? (
             <div className="py-3">
@@ -105,12 +107,14 @@ export function DeleteTeacherModal({
             </div>
           ) : preview.data ? (
             <ul className="mt-2 space-y-1 text-sm text-slate-700">
-              <li>{preview.data.group_count} ta guruh</li>
-              <li>{preview.data.student_count} ta o&rsquo;quvchi hisobi</li>
-              <li>{preview.data.attendance_session_count} ta davomat kuni</li>
+              <li>{t.admin.deleteModal.groupsCount(preview.data.group_count)}</li>
+              <li>{t.admin.deleteModal.studentsCount(preview.data.student_count)}</li>
+              <li>{t.admin.deleteModal.sessionsCount(preview.data.attendance_session_count)}</li>
               <li>
-                {preview.data.payment_count} ta to&rsquo;lov yozuvi (
-                {money(preview.data.total_collected)} so&rsquo;m)
+                {t.admin.deleteModal.paymentsCount(
+                  preview.data.payment_count,
+                  money(preview.data.total_collected),
+                )}
               </li>
             </ul>
           ) : null}
@@ -118,11 +122,9 @@ export function DeleteTeacherModal({
 
         <div className="rounded-lg border border-slate-200 p-3">
           <p className="text-sm font-medium text-slate-800">
-            Avval zaxira nusxa oling
+            {t.admin.deleteModal.backupFirst}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Butun ma&rsquo;lumot JSON fayl sifatida yuklab olinadi.
-          </p>
+          <p className="mt-0.5 text-xs text-slate-500">{t.admin.deleteModal.backupDesc}</p>
           <Button
             variant="secondary"
             size="sm"
@@ -130,15 +132,15 @@ export function DeleteTeacherModal({
             loading={exportMutation.isPending}
             onClick={() => exportMutation.mutate()}
           >
-            {backedUp ? 'Qayta yuklab olish' : 'Zaxira nusxani yuklab olish'}
+            {backedUp ? t.admin.deleteModal.downloadAgain : t.admin.deleteModal.downloadBackup}
           </Button>
           {backedUp && (
-            <span className="ml-2 text-xs text-paid">Yuklab olindi ✓</span>
+            <span className="ml-2 text-xs text-paid">{t.admin.deleteModal.downloaded}</span>
           )}
         </div>
 
         <Input
-          label={`Tasdiqlash uchun «${teacher.username}» deb yozing`}
+          label={t.admin.deleteModal.confirmInputLabel(teacher.username ?? '')}
           value={confirm}
           placeholder={teacher.username ?? ''}
           onChange={(event) => setConfirm(event.target.value)}

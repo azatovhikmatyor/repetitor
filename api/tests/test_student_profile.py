@@ -197,3 +197,41 @@ async def test_pagination_splits_the_list(
     assert {item["id"] for item in first_page["items"]}.isdisjoint(
         item["id"] for item in second_page["items"]
     )
+
+
+async def test_teacher_cannot_reset_password_without_request(
+    client: AsyncClient, admin_headers: dict
+) -> None:
+    """O'qituvchi o'z ixtiyori bilan, so'rovsiz parolni tiklay olmaydi."""
+    headers, student_id = await _student(client, admin_headers)
+
+    response = await client.post(
+        f"/students/{student_id}/reset-password", headers=headers
+    )
+
+    assert response.status_code == 409
+
+
+async def test_teacher_can_reset_password_after_student_requests_it(
+    client: AsyncClient, admin_headers: dict
+) -> None:
+    """Regression: router `TempPasswordOut`ni noto'g'ri maydon nomi bilan
+    yig'gani uchun bu chaqiruv har doim 500 qaytarardi."""
+    headers, student_id = await _student(client, admin_headers)
+
+    requested = await client.post(
+        "/auth/password/request-reset-from-teacher",
+        json={"login": "+998901112233"},
+    )
+    assert requested.status_code == 200
+
+    response = await client.post(
+        f"/students/{student_id}/reset-password", headers=headers
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["temporary_password"]) > 0
+
+    # So'rov "hal qilingan" — qayta so'ramasdan yana tiklab bo'lmaydi.
+    again = await client.post(f"/students/{student_id}/reset-password", headers=headers)
+    assert again.status_code == 409

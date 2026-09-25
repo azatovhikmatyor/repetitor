@@ -129,6 +129,7 @@ class StudentSummary(ORMModel):
     username: str | None = None
     avatar_url: str | None = None
     status: UserStatus
+    password_reset_requested_at: datetime | None = None
 
     @computed_field
     @property
@@ -143,6 +144,16 @@ class StudentSummary(ORMModel):
     @property
     def is_active(self) -> bool:
         return self.status is UserStatus.ACTIVE
+
+    @computed_field
+    @property
+    def password_reset_requested(self) -> bool:
+        """True bo'lsa, o'quvchi o'qituvchisidan parolni tiklashni so'ragan.
+
+        O'qituvchi parolni FAQAT shunda tiklay oladi (backend ham shuni
+        talab qiladi) — bu shunchaki tugmani ko'rsatish/yashirish uchun.
+        """
+        return self.password_reset_requested_at is not None
 
 
 class StudentListItem(StudentSummary):

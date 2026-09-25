@@ -20,10 +20,12 @@ import type { AttendanceReport, MonthlyReport, RevenuePoint } from '@/lib/api/ty
 import { useAuth } from '@/lib/auth/auth-context'
 import { downloadCsv } from '@/lib/export'
 import { cn } from '@/lib/cn'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { compact, money, monthName, monthShort, percent } from '@/lib/format'
 import { currentPeriod } from '@/lib/period'
 
 export function ReportsPage() {
+  const t = useT()
   const [period, setPeriod] = useState(currentPeriod())
   const { user } = useAuth()
 
@@ -34,7 +36,7 @@ export function ReportsPage() {
   return (
     <>
       <PageHeader
-        title="Hisobot"
+        title={t.reports.title}
         actions={
           <>
             <Button
@@ -45,14 +47,14 @@ export function ReportsPage() {
                 downloadCsv(
                   `hisobot-${period.year}-${String(period.month).padStart(2, '0')}`,
                   [
-                    'Guruh',
-                    "O'quvchi",
-                    'Kutilgan',
-                    "Yig'ilgan",
-                    'Qarz',
-                    "To'lagan",
-                    'Qisman',
-                    "To'lamagan",
+                    t.reports.colGroup,
+                    t.reports.colStudents,
+                    t.reports.colExpected,
+                    t.reports.colCollected,
+                    t.reports.colDebt,
+                    t.reports.colPaidCount,
+                    t.reports.colPartialCount,
+                    t.reports.colUnpaidCount,
                   ],
                   [
                     ...monthly.data.groups.map((group) => [
@@ -66,7 +68,7 @@ export function ReportsPage() {
                       group.unpaid_count,
                     ]),
                     [
-                      'JAMI',
+                      t.reports.total,
                       '',
                       monthly.data.total_due,
                       monthly.data.total_paid,
@@ -75,16 +77,16 @@ export function ReportsPage() {
                       '',
                       '',
                     ],
-                    ['XARAJAT', '', '', monthly.data.total_expenses, '', '', '', ''],
-                    ['FOYDA', '', '', monthly.data.profit, '', '', '', ''],
+                    [t.reports.expensesRow, '', '', monthly.data.total_expenses, '', '', '', ''],
+                    [t.reports.profitRow, '', '', monthly.data.profit, '', '', '', ''],
                   ],
                 )
               }}
             >
-              Excel
+              {t.reports.excel}
             </Button>
             <Button variant="secondary" onClick={print}>
-              Chop etish
+              {t.reports.print}
             </Button>
             <MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />
           </>
@@ -97,6 +99,7 @@ export function ReportsPage() {
             data={monthly.data}
             attendance={attendance.data}
             teacherName={user?.full_name ?? ''}
+            t={t}
           />
         </Printable>
       )}
@@ -104,7 +107,7 @@ export function ReportsPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader
-            title="Oylik moliyaviy hisobot"
+            title={t.reports.monthlyTitle}
             description={`${monthName(period.month)} ${period.year}`}
           />
           {monthly.isPending && <Loading rows={4} />}
@@ -116,37 +119,37 @@ export function ReportsPage() {
             <>
               <CardBody className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <Stat
-                  label="Yig&rsquo;ilgan"
+                  label={t.reports.collected}
                   value={money(monthly.data.total_paid)}
                   tone="paid"
                 />
-                <Stat label="Kutilgan" value={money(monthly.data.total_due)} />
+                <Stat label={t.reports.expected} value={money(monthly.data.total_due)} />
                 <Stat
-                  label="Qarz"
+                  label={t.reports.debt}
                   value={money(monthly.data.total_debt)}
                   tone={monthly.data.total_debt > 0 ? 'unpaid' : undefined}
                 />
                 <Stat
-                  label="Foyda"
+                  label={t.reports.profit}
                   value={money(monthly.data.profit)}
-                  caption={`xarajat ${money(monthly.data.total_expenses)}`}
+                  caption={t.reports.expensesCaption(money(monthly.data.total_expenses))}
                   tone={monthly.data.profit >= 0 ? 'paid' : 'unpaid'}
                   to="/expenses"
                 />
               </CardBody>
 
               {monthly.data.groups.length === 0 ? (
-                <EmptyState title="Bu oyda ma&rsquo;lumot yo&rsquo;q" />
+                <EmptyState title={t.reports.noData} />
               ) : (
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Guruh</Th>
-                      <Th align="right">O&rsquo;quvchi</Th>
-                      <Th align="right">Kutilgan</Th>
-                      <Th align="right">Yig&rsquo;ilgan</Th>
-                      <Th align="right">Qarz</Th>
-                      <Th>Holatlar</Th>
+                      <Th>{t.reports.colGroup}</Th>
+                      <Th align="right">{t.reports.colStudents}</Th>
+                      <Th align="right">{t.reports.colExpected}</Th>
+                      <Th align="right">{t.reports.colCollected}</Th>
+                      <Th align="right">{t.reports.colDebt}</Th>
+                      <Th>{t.reports.colStatuses}</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -193,19 +196,16 @@ export function ReportsPage() {
         </Card>
 
         <Card>
-          <CardHeader
-            title="Daromad tendentsiyasi"
-            description="Oxirgi 12 oy: yig&rsquo;ilgan va kutilgan"
-          />
+          <CardHeader title={t.reports.trendTitle} description={t.reports.trendDesc} />
           {trend.isPending && <Loading rows={2} />}
           {trend.error && (
             <ErrorState error={trend.error} onRetry={() => void trend.refetch()} />
           )}
-          {trend.data && <TrendChart points={trend.data} />}
+          {trend.data && <TrendChart points={trend.data} t={t} />}
         </Card>
 
         <Card>
-          <CardHeader title="Davomat" />
+          <CardHeader title={t.reports.attendanceTitle} />
           {attendance.isPending && <Loading rows={2} />}
           {attendance.error && (
             <ErrorState
@@ -214,7 +214,7 @@ export function ReportsPage() {
             />
           )}
           {attendance.data && attendance.data.groups.length === 0 && (
-            <EmptyState title="Bu oyda davomat yo&rsquo;q" />
+            <EmptyState title={t.reports.noAttendance} />
           )}
           {attendance.data && attendance.data.groups.length > 0 && (
             <CardBody className="space-y-5">
@@ -231,7 +231,7 @@ export function ReportsPage() {
                     tone={group.attendance_rate >= 80 ? 'paid' : 'partial'}
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    {group.session_count} ta dars
+                    {t.reports.lessonCountSuffix(group.session_count)}
                   </p>
                 </div>
               ))}
@@ -239,7 +239,7 @@ export function ReportsPage() {
               {attendance.data.frequent_absentees.length > 0 && (
                 <div className="border-t border-slate-100 pt-4">
                   <p className="mb-2 text-sm font-medium text-slate-700">
-                    Eng ko&rsquo;p qoldiradiganlar
+                    {t.reports.topAbsentees}
                   </p>
                   <ul className="space-y-1.5">
                     {attendance.data.frequent_absentees.slice(0, 5).map((student) => (
@@ -254,8 +254,11 @@ export function ReportsPage() {
                           {student.full_name}
                         </Link>
                         <span className="text-xs text-slate-500">
-                          {student.total_sessions} darsdan {student.absent_count} tasida
-                          yo&rsquo;q &middot;{' '}
+                          {t.reports.sessionsAbsences(
+                            student.total_sessions,
+                            student.absent_count,
+                          )}{' '}
+                          &middot;{' '}
                           <span className="font-semibold text-unpaid">
                             {percent(student.attendance_rate)}
                           </span>
@@ -287,8 +290,8 @@ export function ReportsPage() {
  * "qancha yig'ildi" bir ustunda taqqoslanadi, ikkitasini ko'z bilan
  * o'lchash shart emas.
  */
-function TrendChart({ points }: { points: RevenuePoint[] }) {
-  if (points.length === 0) return <EmptyState title="Ma&rsquo;lumot yo&rsquo;q" />
+function TrendChart({ points, t }: { points: RevenuePoint[]; t: Dictionary }) {
+  if (points.length === 0) return <EmptyState title={t.reports.noData2} />
 
   const max = Math.max(
     1,
@@ -299,8 +302,8 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
   if (withData.length === 0) {
     return (
       <EmptyState
-        title="Hali daromad yo&rsquo;q"
-        description="Oylik hisoblar ochilgach grafik to&rsquo;la boshlaydi"
+        title={t.reports.noRevenueYet}
+        description={t.reports.noRevenueYetDesc}
       />
     )
   }
@@ -315,36 +318,22 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
       <div className="flex flex-wrap items-center gap-4 text-xs">
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-sm bg-paid" />
-          <span className="text-slate-600">Yig&rsquo;ilgan</span>
+          <span className="text-slate-600">{t.reports.legendCollected}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-sm bg-slate-200" />
-          <span className="text-slate-600">Kutilgan</span>
+          <span className="text-slate-600">{t.reports.legendExpected}</span>
         </span>
         {hasExpenses && (
           <span className="flex items-center gap-1.5">
             <span className="h-0.5 w-3 rounded-sm bg-unpaid/70" />
-            <span className="text-slate-600">Xarajat</span>
+            <span className="text-slate-600">{t.reports.legendExpenses}</span>
           </span>
         )}
         <span className="ml-auto text-slate-500">
-          {withData.length} oyda{' '}
-          <span className="tabular font-medium text-slate-800">
-            {money(totalCollected)}
-          </span>{' '}
-          / {money(totalExpected)} so&rsquo;m
+          {t.reports.monthsSummary(withData.length, money(totalCollected), money(totalExpected))}
           {hasExpenses && (
-            <>
-              {' \u00b7 foyda '}
-              <span
-                className={cn(
-                  'tabular font-medium',
-                  totalCollected - totalExpenses >= 0 ? 'text-paid' : 'text-unpaid',
-                )}
-              >
-                {money(totalCollected - totalExpenses)}
-              </span>
-            </>
+            <>{t.reports.profitSuffix(money(totalCollected - totalExpenses))}</>
           )}
         </span>
       </div>
@@ -370,10 +359,14 @@ function TrendChart({ points }: { points: RevenuePoint[] }) {
                 key={`${point.year}-${point.month}`}
                 title={
                   point.expected > 0
-                    ? `${monthName(point.month)} ${point.year}: ${money(
-                        point.collected,
-                      )} / ${money(point.expected)} so'm (${rate}%)`
-                    : `${monthName(point.month)} ${point.year}: ma'lumot yo'q`
+                    ? t.reports.tooltipWithData(
+                        monthName(point.month),
+                        point.year,
+                        money(point.collected),
+                        money(point.expected),
+                        rate,
+                      )
+                    : t.reports.tooltipNoData(monthName(point.month), point.year)
                 }
                 className={cn(
                   'flex min-w-0 flex-1 flex-col items-center gap-1',
@@ -438,16 +431,18 @@ function PrintableReport({
   data,
   attendance,
   teacherName,
+  t,
 }: {
   data: MonthlyReport
   attendance: AttendanceReport | undefined
   teacherName: string
+  t: Dictionary
 }) {
   return (
     <div>
       <div className="flex items-start justify-between border-b border-slate-300 pb-3">
         <div>
-          <p className="text-lg font-semibold">Oylik hisobot</p>
+          <p className="text-lg font-semibold">{t.reports.printDocTitle}</p>
           <p className="text-sm text-slate-600">
             {monthName(data.month)} {data.year}
           </p>
@@ -458,11 +453,11 @@ function PrintableReport({
       <table className="mt-4 w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-slate-300 text-left">
-            <th className="py-1.5">Guruh</th>
-            <th className="py-1.5 text-right">O&rsquo;quvchi</th>
-            <th className="py-1.5 text-right">Kutilgan</th>
-            <th className="py-1.5 text-right">Yig&rsquo;ilgan</th>
-            <th className="py-1.5 text-right">Qarz</th>
+            <th className="py-1.5">{t.reports.colGroup}</th>
+            <th className="py-1.5 text-right">{t.reports.colStudents}</th>
+            <th className="py-1.5 text-right">{t.reports.colExpected}</th>
+            <th className="py-1.5 text-right">{t.reports.colCollected}</th>
+            <th className="py-1.5 text-right">{t.reports.colDebt}</th>
           </tr>
         </thead>
         <tbody>
@@ -476,7 +471,7 @@ function PrintableReport({
             </tr>
           ))}
           <tr className="font-semibold">
-            <td className="py-2">JAMI</td>
+            <td className="py-2">{t.reports.total}</td>
             <td />
             <td className="py-2 text-right">{money(data.total_due)}</td>
             <td className="py-2 text-right">{money(data.total_paid)}</td>
@@ -484,14 +479,14 @@ function PrintableReport({
           </tr>
           <tr>
             <td className="py-1.5" colSpan={3}>
-              Xarajat
+              {t.reports.expensesRow}
             </td>
             <td className="py-1.5 text-right">{money(data.total_expenses)}</td>
             <td />
           </tr>
           <tr className="border-t border-slate-300 font-semibold">
             <td className="py-2" colSpan={3}>
-              Foyda
+              {t.reports.profitRow}
             </td>
             <td className="py-2 text-right">{money(data.profit)}</td>
             <td />
@@ -501,13 +496,15 @@ function PrintableReport({
 
       {attendance && attendance.groups.length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-semibold">Davomat</p>
+          <p className="mt-6 mb-2 font-semibold">{t.reports.attendancePrintTitle}</p>
           <table className="w-full border-collapse text-sm">
             <tbody>
               {attendance.groups.map((group) => (
                 <tr key={group.group_id} className="border-b border-slate-200">
                   <td className="py-1.5">{group.group_name}</td>
-                  <td className="py-1.5 text-right">{group.session_count} dars</td>
+                  <td className="py-1.5 text-right">
+                    {t.reports.lessonCountSuffix(group.session_count)}
+                  </td>
                   <td className="py-1.5 text-right">
                     {percent(group.attendance_rate)}
                   </td>
@@ -519,8 +516,8 @@ function PrintableReport({
       )}
 
       <div className="mt-10 flex justify-between text-sm text-slate-600">
-        <span>Sana: ____________</span>
-        <span>Imzo: ____________</span>
+        <span>{t.reports.dateLabel}</span>
+        <span>{t.reports.signatureLabel}</span>
       </div>
     </div>
   )

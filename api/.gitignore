@@ -11,3 +11,7 @@ htmlcov/
 
 # Yuklangan fayllar
 media/
+
+# `scripts/create_desktop_shortcut.py` shu yerda hosil qiladi — har kimning
+# o'z kompyuterida avtomatik generatsiya qilinadi, repo'da saqlanmaydi.
+desktop_icon.ico

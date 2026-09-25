@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
 import { groupMonthQuery, paymentHistoryQuery, qk } from '@/lib/api/queries'
 import type { Charge, Payment } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { formatDate, money } from '@/lib/format'
 import { useAuth } from '@/lib/auth/auth-context'
 import { downloadCsv, slug } from '@/lib/export'
@@ -33,6 +34,7 @@ import { RecordPaymentModal } from './record-payment-modal'
 export function GroupPaymentsPage() {
   const { groupId } = useParams()
   const id = Number(groupId)
+  const t = useT()
   const [period, setPeriod] = useState(currentPeriod())
   const [charge, setCharge] = useState<Charge | null>(null)
   const [reversing, setReversing] = useState<Payment | null>(null)
@@ -47,7 +49,7 @@ export function GroupPaymentsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['group', id, 'payments'] })
       await queryClient.invalidateQueries({ queryKey: qk.dashboard })
-      toast.success("To'lov bekor qilindi")
+      toast.success(t.payments.reversedToast)
       setReversing(null)
     },
     onError: (error) => {
@@ -65,9 +67,9 @@ export function GroupPaymentsPage() {
   return (
     <>
       <PageHeader
-        title="To&rsquo;lovlar"
+        title={t.payments.title}
         description={month.data?.group_name}
-        back={{ to: `/groups/${id}`, label: 'Guruh' }}
+        back={{ to: `/groups/${id}`, label: t.payments.backLabel }}
         actions={
           <>
             <Button
@@ -79,18 +81,24 @@ export function GroupPaymentsPage() {
                   `${slug(month.data.group_name)}-${period.year}-${String(
                     period.month,
                   ).padStart(2, '0')}`,
-                  ["O'quvchi", 'Kutilgan', "To'langan", 'Qarz', 'Holat'],
+                  [
+                    t.payments.colStudent,
+                    t.payments.colDue,
+                    t.payments.colPaid,
+                    t.payments.colDebt,
+                    t.payments.colStatus,
+                  ],
                   month.data.students.map((item) => [
                     item.full_name,
                     item.amount_due,
                     item.amount_paid,
                     Math.max(item.balance, 0),
-                    chargeStateLabel(item.status, item.amount_due),
+                    chargeStateLabel(t, item.status, item.amount_due),
                   ]),
                 )
               }}
             >
-              Excel
+              {t.common.export}
             </Button>
             <MonthPicker value={period} onChange={setPeriod} max={maxPeriod} />
           </>
@@ -105,13 +113,13 @@ export function GroupPaymentsPage() {
           <Card>
             <CardBody className="grid gap-6 sm:grid-cols-3">
               <Stat
-                label="Yig&rsquo;ilgan"
+                label={t.payments.collected}
                 value={money(month.data.total_paid)}
                 tone="paid"
               />
-              <Stat label="Kutilgan" value={money(month.data.total_due)} />
+              <Stat label={t.payments.expected} value={money(month.data.total_due)} />
               <Stat
-                label="Qarz"
+                label={t.payments.debt}
                 value={money(month.data.total_debt)}
                 tone={month.data.total_debt > 0 ? 'unpaid' : undefined}
               />
@@ -128,11 +136,11 @@ export function GroupPaymentsPage() {
           </Card>
 
           <Card>
-            <CardHeader title="O&rsquo;quvchilar" />
+            <CardHeader title={t.payments.studentsTitle} />
             {month.data.students.length === 0 ? (
               <EmptyState
-                title="Bu oyda hisob yo&rsquo;q"
-                description="Guruhda faol o&rsquo;quvchi bo&rsquo;lmasa hisob ochilmaydi"
+                title={t.payments.noChargesTitle}
+                description={t.payments.noChargesDesc}
               />
             ) : (
               <DataTable
@@ -141,25 +149,25 @@ export function GroupPaymentsPage() {
                 columns={[
                   {
                     key: 'name',
-                    header: 'Ism',
+                    header: t.payments.colName,
                     primary: true,
                     cell: (item) => item.full_name,
                   },
                   {
                     key: 'due',
-                    header: 'Kutilgan',
+                    header: t.payments.colDue,
                     align: 'right',
                     cell: (item) => money(item.amount_due),
                   },
                   {
                     key: 'paid',
-                    header: "To'langan",
+                    header: t.payments.colPaid,
                     align: 'right',
                     cell: (item) => money(item.amount_paid),
                   },
                   {
                     key: 'balance',
-                    header: 'Qarz',
+                    header: t.payments.colDebt,
                     align: 'right',
                     cell: (item) =>
                       item.balance > 0 ? (
@@ -172,10 +180,10 @@ export function GroupPaymentsPage() {
                   },
                   {
                     key: 'status',
-                    header: 'Holat',
+                    header: t.payments.colStatus,
                     cell: (item) => (
                       <Badge tone={chargeStateTone(item.status, item.amount_due)}>
-                        {chargeStateLabel(item.status, item.amount_due)}
+                        {chargeStateLabel(t, item.status, item.amount_due)}
                       </Badge>
                     ),
                   },
@@ -185,7 +193,7 @@ export function GroupPaymentsPage() {
                     footer: true,
                     cell: (item) => (
                       <Button size="sm" variant="secondary" onClick={() => setCharge(item)}>
-                        To&rsquo;lov
+                        {t.payments.payBtn}
                       </Button>
                     ),
                   },
@@ -196,11 +204,11 @@ export function GroupPaymentsPage() {
 
           <Card>
             <CardHeader
-              title="To&rsquo;lovlar tarixi"
-              description="To&rsquo;lov o&rsquo;chirilmaydi &mdash; bekor qilinganda tuzatuvchi yozuv qo&rsquo;shiladi"
+              title={t.payments.historyTitle}
+              description={t.payments.historyDesc}
             />
             {history.isPending && <Loading rows={2} />}
-            {history.data?.length === 0 && <EmptyState title="Bu oyda to&rsquo;lov yo&rsquo;q" />}
+            {history.data?.length === 0 && <EmptyState title={t.payments.noPayments} />}
             {history.data && history.data.length > 0 && (
               <DataTable
                 rows={history.data}
@@ -208,13 +216,13 @@ export function GroupPaymentsPage() {
                 columns={[
                   {
                     key: 'name',
-                    header: "O'quvchi",
+                    header: t.payments.colStudent,
                     primary: true,
                     cell: (payment) => payment.full_name,
                   },
                   {
                     key: 'date',
-                    header: 'Sana',
+                    header: t.payments.colDate,
                     cell: (payment) => (
                       <span className="whitespace-nowrap text-slate-500">
                         {formatDate(payment.paid_at)}
@@ -223,24 +231,24 @@ export function GroupPaymentsPage() {
                   },
                   {
                     key: 'method',
-                    header: 'Turi',
+                    header: t.payments.colMethod,
                     cell: (payment) => (
-                      <span className="text-slate-500">{methodLabel[payment.method]}</span>
+                      <span className="text-slate-500">{methodLabel(t)[payment.method]}</span>
                     ),
                   },
                   {
                     key: 'note',
-                    header: 'Izoh',
+                    header: t.payments.colNote,
                     cell: (payment) =>
                       payment.is_reversal ? (
-                        <Badge tone="unpaid">Bekor qilingan</Badge>
+                        <Badge tone="unpaid">{t.payments.reversedBadge}</Badge>
                       ) : (
                         <span className="text-slate-500">{payment.note}</span>
                       ),
                   },
                   {
                     key: 'amount',
-                    header: 'Summa',
+                    header: t.payments.colAmount,
                     align: 'right',
                     cell: (payment) => (
                       <span
@@ -266,14 +274,14 @@ export function GroupPaymentsPage() {
                             size="sm"
                             onClick={() => setReceipt(payment)}
                           >
-                            Kvitansiya
+                            {t.payments.receiptBtn}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setReversing(payment)}
                           >
-                            Bekor qilish
+                            {t.payments.cancelBtn}
                           </Button>
                         </span>
                       ),
@@ -291,9 +299,12 @@ export function GroupPaymentsPage() {
         onConfirm={() => reversing && reverse.mutate(reversing)}
         loading={reverse.isPending}
         destructive
-        title="To'lovni bekor qilish"
-        message={`${reversing?.full_name ?? ''} — ${money(reversing?.amount ?? 0)}. Yozuv o'chmaydi: unga bog'langan manfiy summali tuzatuvchi yozuv qo'shiladi va ikkalasi ham tarixda qoladi.`}
-        confirmLabel="Bekor qilish"
+        title={t.payments.reverseConfirmTitle}
+        message={t.payments.reverseConfirmMessage(
+          reversing?.full_name ?? '',
+          money(reversing?.amount ?? 0),
+        )}
+        confirmLabel={t.payments.reverseConfirmLabel}
       />
 
       {receipt && (

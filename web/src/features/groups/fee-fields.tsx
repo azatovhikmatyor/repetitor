@@ -1,5 +1,6 @@
 import { MoneyInput, Input } from '@/components/ui/field'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 import { money } from '@/lib/format'
 
 export type FeeMode = 'group' | 'custom' | 'free'
@@ -47,12 +48,6 @@ export function feeCreatePayload(draft: FeeDraft): Record<string, unknown> {
   }
 }
 
-const MODES: { value: FeeMode; label: string }[] = [
-  { value: 'group', label: 'Guruh narxi' },
-  { value: 'custom', label: 'Boshqa summa' },
-  { value: 'free', label: 'Bepul' },
-]
-
 /**
  * O'quvchining shu guruhdagi oylik narxi.
  *
@@ -69,14 +64,21 @@ export function FeeFields({
   value: FeeDraft
   onChange: (draft: FeeDraft) => void
 }) {
+  const t = useT()
+  const modes: { value: FeeMode; label: string }[] = [
+    { value: 'group', label: t.groups.fee.modeGroup },
+    { value: 'custom', label: t.groups.fee.modeCustom },
+    { value: 'free', label: t.groups.fee.modeFree },
+  ]
+
   return (
     <div className="space-y-3">
       <div>
         <span className="mb-1.5 block text-sm font-medium text-slate-700">
-          Oylik narx
+          {t.groups.fee.label}
         </span>
         <div className="inline-flex rounded-lg bg-slate-100 p-1">
-          {MODES.map((mode) => (
+          {modes.map((mode) => (
             <button
               key={mode.value}
               type="button"
@@ -94,32 +96,28 @@ export function FeeFields({
         </div>
         {value.mode === 'group' && (
           <p className="mt-1.5 text-xs text-slate-500">
-            {money(groupFee)} so&rsquo;m &mdash; guruh narxi o&rsquo;zgarsa bu
-            o&rsquo;quvchiniki ham o&rsquo;zgaradi
+            {t.groups.fee.groupHint(money(groupFee))}
           </p>
         )}
         {value.mode === 'free' && (
-          <p className="mt-1.5 text-xs text-slate-500">
-            Hisob ochiladi, lekin summasi 0 &mdash; qarzdorlar ro&rsquo;yxatiga
-            tushmaydi
-          </p>
+          <p className="mt-1.5 text-xs text-slate-500">{t.groups.fee.freeHint}</p>
         )}
       </div>
 
       {value.mode === 'custom' && (
         <MoneyInput
-          label="Summa"
+          label={t.groups.fee.amountLabel}
           value={value.amount}
-          hint={`Guruh narxi ${money(groupFee)} so'm`}
+          hint={t.groups.fee.amountHint(money(groupFee))}
           onChange={(amount) => onChange({ ...value, amount })}
         />
       )}
 
       {value.mode !== 'group' && (
         <Input
-          label="Sabab"
+          label={t.groups.fee.reasonLabel}
           value={value.note}
-          placeholder="Masalan: aka-ukalar chegirmasi"
+          placeholder={t.groups.fee.reasonPlaceholder}
           onChange={(event) => onChange({ ...value, note: event.target.value })}
         />
       )}

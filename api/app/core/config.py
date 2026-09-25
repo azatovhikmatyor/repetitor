@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     media_url: str = "/media"
     max_avatar_bytes: int = 5 * 1024 * 1024
 
+    # `npm run build` chiqargan web ilova (`web/dist`). Mavjud bo'lsa,
+    # backend uni o'zi serve qiladi — alohida nginx/CDN shart emas.
+    # Papka topilmasa (masalan lokal devda, faqat API bilan ishlaganda)
+    # bu funksiya jim o'chadi, API oddiy ishlashda davom etadi.
+    web_dist_dir: str = "../web/dist"
+
     # Localisation
     timezone: str = "Asia/Tashkent"
     currency: str = "UZS"

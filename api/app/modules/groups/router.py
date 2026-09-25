@@ -354,7 +354,7 @@ async def reset_student_password(
     temp_password = await service.reset_student_password(
         db, teacher_id=teacher.id, student_id=student_id
     )
-    return TempPasswordOut(student_id=student_id, temporary_password=temp_password)
+    return TempPasswordOut(user_id=student_id, temporary_password=temp_password)
 
 
 @students_router.post(

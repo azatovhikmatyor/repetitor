@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/toast'
 import { api, ApiError } from '@/lib/api/client'
 import type { Expense, ExpenseCategory } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { isoDate } from '@/lib/format'
 import { expenseCategoryOptions } from '@/lib/labels'
 import type { Period } from '@/lib/period'
@@ -32,6 +33,7 @@ export function ExpenseFormModal({
   onSaved: () => Promise<void>
 }) {
   const toast = useToast()
+  const t = useT()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [form, setForm] = useState({
     title: expense?.title ?? '',
@@ -58,7 +60,7 @@ export function ExpenseFormModal({
     },
     onSuccess: async () => {
       await onSaved()
-      toast.success('Saqlandi')
+      toast.success(t.expenses.form.savedToast)
       onClose()
     },
     onError: (issue) => {
@@ -73,35 +75,35 @@ export function ExpenseFormModal({
     <Modal
       open
       onClose={onClose}
-      title={expense ? 'Xarajatni tahrirlash' : 'Yangi xarajat'}
+      title={expense ? t.expenses.form.editTitle : t.expenses.form.newTitle}
       width="max-w-md"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button
             loading={save.isPending}
             disabled={!form.title.trim() || Number(form.amount || 0) <= 0}
             onClick={() => save.mutate()}
           >
-            Saqlash
+            {t.common.save}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <Input
-          label="Nomi"
+          label={t.expenses.form.titleLabel}
           value={form.title}
           error={errors.title}
-          placeholder="Ijara, internet, reklama..."
+          placeholder={t.expenses.form.titlePlaceholder}
           autoFocus
           onChange={(event) => set({ title: event.target.value })}
         />
 
         <MoneyInput
-          label="Summa"
+          label={t.expenses.form.amountLabel}
           value={form.amount}
           error={errors.amount}
           onChange={(amount) => set({ amount })}
@@ -109,15 +111,15 @@ export function ExpenseFormModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
-            label="Toifa"
+            label={t.expenses.form.categoryLabel}
             value={form.category}
-            options={expenseCategoryOptions}
+            options={expenseCategoryOptions(t)}
             onChange={(event) =>
               set({ category: event.target.value as ExpenseCategory })
             }
           />
           <Input
-            label="Sana"
+            label={t.expenses.form.dateLabel}
             type="date"
             value={form.spent_on}
             error={errors.spent_on}
@@ -133,16 +135,15 @@ export function ExpenseFormModal({
             className="mt-0.5 size-4 rounded border-slate-300 text-brand-600"
           />
           <span>
-            Har oy takrorlanadi
+            {t.expenses.form.recurringLabel}
             <span className="block text-xs text-slate-500">
-              Kelasi oyda &laquo;O&rsquo;tgan oydan ko&rsquo;chirish&raquo; tugmasi
-              bilan bir bosishda qo&rsquo;shiladi
+              {t.expenses.form.recurringHint}
             </span>
           </span>
         </label>
 
         <Textarea
-          label="Izoh"
+          label={t.expenses.form.noteLabel}
           rows={2}
           value={form.note}
           error={errors.note}

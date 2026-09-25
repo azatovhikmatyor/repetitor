@@ -5,25 +5,49 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
+import { useT } from '@/lib/i18n'
 import type { ForgotPasswordResponse } from '@/lib/api/types'
 
 import { AuthLayout } from './login-page'
 
 /**
- * Parolni tiklash — faqat o'qituvchilar uchun.
+ * Parolni tiklash.
  *
- * O'quvchi parolni o'zi tiklay olmaydi: u o'qituvchisiga murojaat qiladi
- * (talab 3).
+ * O'qituvchi email/SMS kod bilan o'zi tiklaydi. O'quvchi esa parolni
+ * o'zi tiklay olmaydi (talab: faqat o'qituvchisi so'rov asosida beradi)
+ * — shuning uchun shu sahifada alohida, sodda rejim bor: username/telefon
+ * kiritadi, tizim o'qituvchisiga xabar qo'yadi.
  */
 export function ForgotPasswordPage() {
   const toast = useToast()
   const navigate = useNavigate()
+  const t = useT()
+  const [studentMode, setStudentMode] = useState(false)
   const [login, setLogin] = useState('')
   const [info, setInfo] = useState<string | null>(null)
   const [token, setToken] = useState('')
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [studentRequestSent, setStudentRequestSent] = useState(false)
+
+  async function requestStudentReset(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    try {
+      const response = await api.post<{ detail: string }>(
+        '/auth/password/request-reset-from-teacher',
+        { login },
+        { skipAuth: true },
+      )
+      setInfo(response.detail)
+      setStudentRequestSent(true)
+    } catch (error) {
+      toast.error(error)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function requestCode(event: FormEvent) {
     event.preventDefault()
@@ -58,7 +82,7 @@ export function ForgotPasswordPage() {
         },
         { skipAuth: true },
       )
-      toast.success('Parol yangilandi. Endi yangi parol bilan kiring.')
+      toast.success(t.auth.passwordUpdated)
       void navigate('/login')
     } catch (error) {
       toast.error(error)
@@ -67,33 +91,71 @@ export function ForgotPasswordPage() {
     }
   }
 
+  if (studentMode) {
+    return (
+      <AuthLayout
+        title={t.auth.studentResetTitle}
+        subtitle={studentRequestSent ? undefined : t.auth.studentResetDesc}
+        footer={
+          <Link to="/login" className="font-medium text-brand-700 hover:underline">
+            {t.auth.backToLogin}
+          </Link>
+        }
+      >
+        {studentRequestSent ? (
+          <p className="text-center text-sm text-slate-600">{info}</p>
+        ) : (
+          <form onSubmit={requestStudentReset} className="space-y-4">
+            <Input
+              label={t.auth.studentLoginLabel}
+              value={login}
+              autoFocus
+              onChange={(event) => setLogin(event.target.value)}
+            />
+            <Button type="submit" className="w-full" loading={busy}>
+              {t.auth.studentResetSubmit}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => setStudentMode(false)}
+            >
+              {t.auth.backToTeacherFlow}
+            </Button>
+          </form>
+        )}
+      </AuthLayout>
+    )
+  }
+
   return (
     <AuthLayout
-      title="Parolni tiklash"
+      title={t.auth.resetTitle}
       footer={
         <Link to="/login" className="font-medium text-brand-700 hover:underline">
-          Kirishga qaytish
+          {t.auth.backToLogin}
         </Link>
       }
     >
       {sent ? (
         <form onSubmit={reset} className="space-y-4">
           <Input
-            label="Email&rsquo;ga kelgan kod"
+            label={t.auth.emailCodeLabel}
             value={token}
             autoFocus
             onChange={(event) => setToken(event.target.value)}
           />
           <Input
-            label="Yangi parol"
+            label={t.auth.newPassword}
             type="password"
             value={password}
-            hint="Kamida 8 belgi"
+            hint={t.auth.passwordHint}
             autoComplete="new-password"
             onChange={(event) => setPassword(event.target.value)}
           />
           <Button type="submit" className="w-full" loading={busy}>
-            Saqlash
+            {t.common.save}
           </Button>
           <Button
             type="button"
@@ -101,21 +163,29 @@ export function ForgotPasswordPage() {
             className="w-full"
             onClick={() => setSent(false)}
           >
-            Boshqa manzil kiritish
+            {t.auth.useAnotherAddress}
           </Button>
         </form>
       ) : (
         <form onSubmit={requestCode} className="space-y-4">
           <Input
-            label="Email yoki telefon raqami"
+            label={t.auth.emailOrPhoneLabel}
             value={login}
             autoFocus
-            hint="Kod shu manzilga yuboriladi"
+            hint={t.auth.codeSentHint}
             onChange={(event) => setLogin(event.target.value)}
           />
           {info && <p className="text-sm text-slate-600">{info}</p>}
           <Button type="submit" className="w-full" loading={busy}>
-            Kod yuborish
+            {t.auth.sendCode}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => setStudentMode(true)}
+          >
+            {t.auth.studentToggleLink}
           </Button>
         </form>
       )}

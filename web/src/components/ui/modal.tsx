@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 
+import { useT } from '@/lib/i18n'
+
 import { Button } from './button'
 
 /**
@@ -25,6 +27,7 @@ export function Modal({
   footer?: ReactNode
   width?: string
 }) {
+  const t = useT()
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -49,7 +52,7 @@ export function Modal({
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose} aria-label="Yopish">
+        <Button variant="ghost" size="sm" onClick={onClose} aria-label={t.common.close}>
           &times;
         </Button>
       </div>
@@ -72,7 +75,7 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmLabel = 'Ha',
+  confirmLabel,
   destructive = false,
   loading = false,
 }: {
@@ -85,6 +88,7 @@ export function ConfirmModal({
   destructive?: boolean
   loading?: boolean
 }) {
+  const t = useT()
   return (
     <Modal
       open={open}
@@ -94,14 +98,14 @@ export function ConfirmModal({
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={loading}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button
             variant={destructive ? 'danger' : 'primary'}
             onClick={onConfirm}
             loading={loading}
           >
-            {confirmLabel}
+            {confirmLabel ?? t.common.yes}
           </Button>
         </>
       }

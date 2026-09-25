@@ -14,6 +14,7 @@ import { api } from '@/lib/api/client'
 import { attendanceQuery, dashboardQuery, groupQuery, qk } from '@/lib/api/queries'
 import type { AttendanceSession, AttendanceStatus } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { isoDate, longDate } from '@/lib/format'
 import { attendanceLabel } from '@/lib/labels'
 
@@ -27,6 +28,7 @@ import { attendanceLabel } from '@/lib/labels'
 export function AttendancePage() {
   const { groupId } = useParams()
   const id = Number(groupId)
+  const t = useT()
 
   const today = isoDate(new Date())
   const [date, setDate] = useState(today)
@@ -44,12 +46,12 @@ export function AttendancePage() {
   return (
     <>
       <PageHeader
-        title={group.data ? `${group.data.name} — davomat` : 'Davomat'}
+        title={group.data ? `${group.data.name} — ${t.attendance.dailyTitle.toLowerCase()}` : t.attendance.dailyTitle}
         description={group.data?.schedule ?? undefined}
-        back={{ to: `/groups/${id}`, label: group.data?.name ?? 'Guruh' }}
+        back={{ to: `/groups/${id}`, label: group.data?.name ?? t.groups.detail.backLabel }}
         actions={
           <Link to={`/groups/${id}/attendance/monthly`}>
-            <Button variant="secondary">Oylik jadval</Button>
+            <Button variant="secondary">{t.attendance.monthlyLink}</Button>
           </Link>
         }
       />
@@ -71,15 +73,15 @@ export function AttendancePage() {
             />
             {/* Brauzerning oy/kun/yil formati chalg'itmasin — yonida to'liq yozuv. */}
             <span className="text-sm font-medium text-slate-700">
-              {date === today ? `Bugun · ${longDate(date)}` : longDate(date)}
+              {date === today ? `${t.attendance.today} · ${longDate(date)}` : longDate(date)}
             </span>
-            {session.data?.is_saved && <Badge tone="brand">Saqlangan</Badge>}
+            {session.data?.is_saved && <Badge tone="brand">{t.attendance.savedBadge}</Badge>}
           </div>
 
           {(session.data?.day_lessons.length ?? 0) > 1 && (
             // Bir kunda bir nechta dars: qaysi biri ekanini tanlash kerak.
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-400">Dars:</span>
+              <span className="text-xs text-slate-400">{t.attendance.lessonLabel}</span>
               {session.data?.day_lessons.map((item) => {
                 const value = item.start_time
                 const active = session.data?.start_time === value
@@ -95,7 +97,7 @@ export function AttendancePage() {
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
                     )}
                   >
-                    {value ? value.slice(0, 5) : 'Jadvalsiz'}
+                    {value ? value.slice(0, 5) : t.attendance.noSchedule}
                     {item.is_cancelled ? (
                       <span className="ml-1">&times;</span>
                     ) : (
@@ -110,7 +112,7 @@ export function AttendancePage() {
           {date !== today && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-partial">
               <Icon name="warning" className="size-4" />
-              O&rsquo;tgan kun ko&rsquo;rsatilmoqda &mdash; bugungi davomat emas
+              {t.attendance.pastNotice}
             </p>
           )}
         </CardBody>
@@ -128,6 +130,7 @@ export function AttendancePage() {
             groupId={id}
             date={date}
             session={session.data}
+            t={t}
           />
         )}
       </Card>
@@ -139,10 +142,12 @@ function AttendanceEditor({
   groupId,
   date,
   session,
+  t,
 }: {
   groupId: number
   date: string
   session: AttendanceSession
+  t: Dictionary
 }) {
   const toast = useToast()
   const navigate = useNavigate()
@@ -213,9 +218,7 @@ function AttendanceEditor({
       setUnlocked(false)
       setConfirmCancel(false)
       toast.success(
-        result.is_cancelled
-          ? "Dars bo'lmagan deb belgilandi"
-          : 'Davomat saqlandi',
+        result.is_cancelled ? t.attendance.cancelledToast : t.attendance.savedToast,
       )
     },
     onError: (error) => toast.error(error),
@@ -225,7 +228,7 @@ function AttendanceEditor({
     return (
       <CardBody>
         <p className="py-8 text-center text-sm text-slate-500">
-          Bu sanada guruhda o&rsquo;quvchi yo&rsquo;q
+          {t.attendance.noStudentsHere}
         </p>
       </CardBody>
     )
@@ -242,12 +245,10 @@ function AttendanceEditor({
           <div>
             <p className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
               <Icon name="close" className="size-4 text-slate-400" />
-              Dars o&rsquo;tkazilmagan
+              {t.attendance.cancelledTitle}
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              {session.note
-                ? session.note
-                : 'Bu kun davomat foiziga kirmaydi'}
+              {session.note ? session.note : t.attendance.cancelledDefaultNote}
             </p>
           </div>
           {session.is_editable && (
@@ -256,7 +257,7 @@ function AttendanceEditor({
               loading={save.isPending}
               onClick={() => save.mutate({ cancelled: false })}
             >
-              Darsni qaytarish
+              {t.attendance.restoreLesson}
             </Button>
           )}
         </CardBody>
@@ -268,14 +269,12 @@ function AttendanceEditor({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-2.5">
         <p className="text-sm text-slate-500">
-          {editable
-            ? 'Kelmaganlarni belgilang — qolgani avtomatik «Bor»'
-            : 'Saqlangan davomat'}
+          {editable ? t.attendance.markAbsentHint : t.attendance.savedAttendance}
         </p>
         <div className="flex items-center gap-2">
-          <Badge tone="paid">Bor: {students.length - absentCount}</Badge>
+          <Badge tone="paid">{t.attendance.presentCount(students.length - absentCount)}</Badge>
           <Badge tone={absentCount > 0 ? 'unpaid' : 'neutral'}>
-            Yo&rsquo;q: {absentCount}
+            {t.attendance.absentCount(absentCount)}
           </Badge>
         </div>
       </div>
@@ -283,12 +282,12 @@ function AttendanceEditor({
       {editable && (
         // Dars bekor bo'lgan kun uchun: 20 kishini bittalab bosish o'rniga.
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-2">
-          <span className="text-xs text-slate-400">Hammasi:</span>
+          <span className="text-xs text-slate-400">{t.attendance.allLabel}</span>
           <Button variant="ghost" size="sm" onClick={() => setAll('present')}>
-            Bor
+            {t.attendance.allPresentBtn}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setAll('absent')}>
-            Yo&rsquo;q
+            {t.attendance.allAbsentBtn}
           </Button>
         </div>
       )}
@@ -333,7 +332,7 @@ function AttendanceEditor({
                         (student.status === status ? '' : 'opacity-40'),
                   )}
                 >
-                  {attendanceLabel[status]}
+                  {attendanceLabel(t)[status]}
                 </button>
               ))}
             </div>
@@ -346,22 +345,20 @@ function AttendanceEditor({
         onClose={() => setConfirmCancel(false)}
         onConfirm={() => save.mutate({ cancelled: true })}
         loading={save.isPending}
-        title="Dars bo&rsquo;lmadi"
-        message="Bu kun davomat foiziga kirmaydi va hech kim «kelmagan» deb hisoblanmaydi. Kiritilgan belgilar o'chiriladi."
-        confirmLabel="Belgilash"
+        title={t.attendance.cancelConfirmTitle}
+        message={t.attendance.cancelConfirmMessage}
+        confirmLabel={t.attendance.cancelConfirmLabel}
       />
 
       {/* Telefonda pastga scroll qilish shart emas — tugma ekranga yopishadi. */}
       <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 bg-white/95 px-5 py-3 backdrop-blur">
         {!session.is_editable ? (
-          <p className="text-sm text-slate-500">
-            Guruh arxivlangan &mdash; davomat faqat ko&rsquo;rish uchun.
-          </p>
+          <p className="text-sm text-slate-500">{t.attendance.archivedNotice}</p>
         ) : !editable ? (
           <>
-            <p className="mr-auto text-sm text-slate-500">Faqat ko&rsquo;rish</p>
+            <p className="mr-auto text-sm text-slate-500">{t.attendance.viewOnly}</p>
             <Button variant="secondary" onClick={() => setUnlocked(true)}>
-              {session.is_saved ? "O’zgartirish" : 'Davomat kiritish'}
+              {session.is_saved ? t.attendance.changeBtn : t.attendance.enterAttendanceBtn}
             </Button>
           </>
         ) : (
@@ -371,14 +368,14 @@ function AttendanceEditor({
                 variant="secondary"
                 onClick={() => void navigate(`/groups/${nextGroup.group_id}/attendance`)}
               >
-                Keyingi: {nextGroup.group_name}
+                {t.attendance.nextGroup(nextGroup.group_name)}
               </Button>
             )}
             <Button
               variant="danger-ghost"
               onClick={() => setConfirmCancel(true)}
             >
-              Dars bo&rsquo;lmadi
+              {t.attendance.cancelLessonBtn}
             </Button>
             {isPast && (
               <Button
@@ -389,11 +386,11 @@ function AttendanceEditor({
                   setUnlocked(false)
                 }}
               >
-                Bekor qilish
+                {t.attendance.undoBtn}
               </Button>
             )}
             <Button loading={save.isPending} onClick={() => save.mutate({})}>
-              Saqlash
+              {t.attendance.saveBtn}
             </Button>
           </>
         )}

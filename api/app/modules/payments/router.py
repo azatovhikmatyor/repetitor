@@ -2,10 +2,27 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import CurrentTeacher, DbSession
+from app.api.deps import CurrentStudent, CurrentTeacher, DbSession
 from app.modules.payments import schemas, service
 
 router = APIRouter(tags=["payments"])
+
+
+@router.get(
+    "/students/me/payments",
+    response_model=list[schemas.StudentChargeOut],
+    summary="O'zining to'lov tarixi (o'quvchi)",
+)
+async def my_payments(
+    db: DbSession, student: CurrentStudent
+) -> list[schemas.StudentChargeOut]:
+    """Barcha guruhlar bo'yicha o'z oylik hisoblari va to'lovlari.
+
+    MUHIM: bu literal `/students/me/payments` — pastdagi
+    `/students/{student_id}/payments` dan OLDIN turishi shart, aks holda
+    "me" `student_id` sifatida o'qilib, 422 qaytaradi.
+    """
+    return await service.student_payments_self(db, student=student)
 
 
 @router.get(

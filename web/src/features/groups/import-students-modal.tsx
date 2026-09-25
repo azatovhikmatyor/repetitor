@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
 import { qk } from '@/lib/api/queries'
 import type { ImportResult } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { money } from '@/lib/format'
 
 interface ParsedRow {
@@ -75,6 +76,7 @@ export function ImportStudentsModal({
   onClose: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const [text, setText] = useState('')
   const [result, setResult] = useState<ImportResult | null>(null)
@@ -104,18 +106,18 @@ export function ImportStudentsModal({
       <Modal
         open
         onClose={onClose}
-        title="Import natijasi"
+        title={t.groups.import.resultTitle}
         width="max-w-2xl"
-        footer={<Button onClick={onClose}>Yopish</Button>}
+        footer={<Button onClick={onClose}>{t.common.close}</Button>}
       >
         <div className="space-y-3">
           <p className="text-sm text-slate-700">
-            <span className="font-medium text-paid">{result.added} ta qo&rsquo;shildi</span>
+            <span className="font-medium text-paid">{t.groups.import.added(result.added)}</span>
             {result.failed > 0 && (
               <>
                 {' · '}
                 <span className="font-medium text-unpaid">
-                  {result.failed} ta o&rsquo;tkazib yuborildi
+                  {t.groups.import.failed(result.failed)}
                 </span>
               </>
             )}
@@ -159,10 +161,10 @@ export function ImportStudentsModal({
                   .filter((row) => row.temporary_password)
                   .map((row) => `${row.full_name}: ${row.temporary_password}`)
                 void navigator.clipboard.writeText(lines.join('\n'))
-                toast.success('Parollar nusxalandi')
+                toast.success(t.groups.import.passwordsCopied)
               }}
             >
-              Parollarni nusxalash
+              {t.groups.import.copyPasswords}
             </Button>
           )}
         </div>
@@ -174,42 +176,40 @@ export function ImportStudentsModal({
     <Modal
       open
       onClose={onClose}
-      title="Ro&rsquo;yxatni qo&rsquo;shish"
-      description="Excel yoki bloknotdan nusxa ko'chiring — har bir o'quvchi alohida qatorda"
+      title={t.groups.import.title}
+      description={t.groups.import.description}
       width="max-w-2xl"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button
             loading={upload.isPending}
             disabled={rows.length === 0}
             onClick={() => upload.mutate()}
           >
-            {rows.length > 0 ? `${rows.length} tasini qo'shish` : "Qo'shish"}
+            {rows.length > 0
+              ? t.groups.import.submitCount(rows.length)
+              : t.groups.import.submitDefault}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <Textarea
-          label="Ro&rsquo;yxat"
+          label={t.groups.import.textareaLabel}
           rows={7}
           value={text}
-          placeholder={
-            'Aziza Rahimova, +998901234567\n' +
-            'Bekzod To‘rayev, +998901234568, 350000\n' +
-            'Dilnoza Yusupova, +998901234569'
-          }
-          hint="Ism Familiya, telefon, (ixtiyoriy) oylik narx"
+          placeholder={t.groups.import.placeholder}
+          hint={t.groups.import.textareaHint}
           onChange={setText}
         />
 
         {rows.length > 0 && (
           <div className="rounded-lg border border-slate-200">
             <p className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
-              Shunday tushunildi:
+              {t.groups.import.previewLabel}
             </p>
             <div className="max-h-56 overflow-y-auto">
               <table className="w-full text-sm">
@@ -221,14 +221,14 @@ export function ImportStudentsModal({
                       </td>
                       <td className="px-3 py-1.5 text-slate-500">
                         {row.phone ?? (
-                          <span className="text-unpaid">telefon yo&rsquo;q</span>
+                          <span className="text-unpaid">{t.groups.import.noPhone}</span>
                         )}
                       </td>
                       <td className="px-3 py-1.5 text-right text-slate-500">
                         {row.custom_fee === undefined ? (
                           money(groupFee)
                         ) : row.custom_fee === 0 ? (
-                          <Badge tone="brand">Bepul</Badge>
+                          <Badge tone="brand">{t.enums.freeLabel}</Badge>
                         ) : (
                           money(row.custom_fee)
                         )}
@@ -242,9 +242,7 @@ export function ImportStudentsModal({
         )}
 
         {skipped > 0 && (
-          <p className="text-xs text-partial">
-            {skipped} ta qator tushunilmadi &mdash; ism kamida 2 harf bo&rsquo;lsin.
-          </p>
+          <p className="text-xs text-partial">{t.groups.import.skipped(skipped)}</p>
         )}
       </div>
     </Modal>

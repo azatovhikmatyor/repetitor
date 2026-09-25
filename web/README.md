@@ -42,11 +42,20 @@ Backend boshqa manzilda bo'lsa:
 VITE_API_TARGET=http://127.0.0.1:9000 npm run dev
 ```
 
-Prod build uchun backend manzili `VITE_API_URL` orqali beriladi:
+Prod build uchun ikki yo'l bor:
 
-```bash
-VITE_API_URL=https://api.example.uz/api/v1 npm run build
-```
+* **Alohida domenlar** (frontend CDN/static hosting'da, backend boshqa
+  joyda) — backend manzili `VITE_API_URL` orqali beriladi va backend'da
+  `CORS_ORIGINS`ga frontend domeni qo'shiladi:
+
+  ```bash
+  VITE_API_URL=https://api.example.uz/api/v1 npm run build
+  ```
+
+* **Bitta process** (tavsiya — kichik loyiha uchun soddaroq): `VITE_API_URL`
+  berilmaydi (standart `/api/v1` — nisbiy), build natijasini backend o'zi
+  serve qiladi. CORS, alohida hosting kerak emas. Batafsil: `api/README.md`
+  dagi "Deploy" bo'limi.
 
 Demo hisob (`api` da `make seed` bajarilgan bo'lsa):
 `ustoz` / `ustoz12345` · admin: `admin` / <yaratganingizdagi parol>

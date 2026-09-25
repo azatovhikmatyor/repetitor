@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { api, ApiError } from '@/lib/api/client'
 import { qk } from '@/lib/api/queries'
 import type { Group } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 
 /**
  * Guruh yaratish/tahrirlash oynasi.
@@ -24,6 +25,7 @@ export function GroupFormModal({
   group?: Group
 }) {
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
   const isEdit = group !== undefined
 
@@ -50,7 +52,7 @@ export function GroupFormModal({
       await queryClient.invalidateQueries({ queryKey: ['groups'] })
       await queryClient.invalidateQueries({ queryKey: qk.group(saved.id) })
       await queryClient.invalidateQueries({ queryKey: qk.dashboard })
-      toast.success(isEdit ? 'Saqlandi' : 'Guruh yaratildi')
+      toast.success(isEdit ? t.groups.form.savedToast : t.groups.form.createdToast)
       onClose()
     },
     onError: (error) => {
@@ -63,37 +65,37 @@ export function GroupFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Guruhni tahrirlash' : 'Yangi guruh'}
+      title={isEdit ? t.groups.form.editTitle : t.groups.form.newTitle}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button onClick={() => mutation.mutate()} loading={mutation.isPending}>
-            Saqlash
+            {t.common.save}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <Input
-          label="Guruh nomi"
+          label={t.groups.form.nameLabel}
           value={form.name}
           error={errors.name}
-          placeholder="IELTS ertalabki"
+          placeholder={t.groups.form.namePlaceholder}
           autoFocus
           onChange={(event) => setForm({ ...form, name: event.target.value })}
         />
         <MoneyInput
-          label="Oylik to&rsquo;lov"
+          label={t.groups.form.feeLabel}
           value={form.monthly_fee}
           error={errors.monthly_fee}
           // Narx o'zgarsa o'tgan oylar o'zgarmasligini eslatib turamiz.
-          hint="O&rsquo;zgartirilsa faqat kelasi oylarga ta&rsquo;sir qiladi"
+          hint={t.groups.form.feeHint}
           onChange={(value) => setForm({ ...form, monthly_fee: value })}
         />
         <Textarea
-          label="Izoh"
+          label={t.groups.form.descLabel}
           value={form.description}
           error={errors.description}
           onChange={(value) => setForm({ ...form, description: value })}

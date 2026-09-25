@@ -21,6 +21,7 @@ from app.core.exceptions import (
 )
 from app.core.notify import notify_admin_new_teacher, send_password_reset_code
 from app.core.rate_limit import check_login_attempt, clear_login_attempts
+from app.core.schemas import Message
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -249,6 +250,31 @@ async def request_password_reset(
         minutes=settings.password_reset_expire_minutes,
     )
     return schemas.ForgotPasswordResponse(detail=generic.detail, channel=channel)
+
+
+async def request_student_password_reset(db: AsyncSession, login: str) -> Message:
+    """O'quvchi ilovaga kira olmasa, o'qituvchisiga so'rov yuboradi.
+
+    O'quvchi uchun email/SMS orqali o'zi tiklash yo'q (talab: o'qituvchi
+    parolni FAQAT shu so'rov kelgandan keyin tiklay oladi, o'z holicha
+    emas). Shuning uchun kod yubormaydi — faqat belgi qo'yadi, o'qituvchi
+    uni o'quvchi kartasida ko'radi va parolni o'zi tiklab beradi.
+    """
+    generic = Message(
+        detail="So'rov yuborildi. O'qituvchingiz ko'rib chiqib, yangi parol beradi."
+    )
+
+    check_login_attempt(f"student-reset:{login.strip().lower()}")
+
+    user = await find_by_login(db, login)
+    # Hisob mavjudligini oshkor qilmaslik uchun teacher/admin uchun ham,
+    # topilmagan login uchun ham bir xil javob qaytadi.
+    if user is None or user.role is not UserRole.STUDENT or user.teacher_id is None:
+        return generic
+
+    user.password_reset_requested_at = utc_now()
+    await db.flush()
+    return generic
 
 
 async def reset_password(db: AsyncSession, *, token: str, new_password: str) -> None:

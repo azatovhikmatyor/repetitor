@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn'
 import { Progress } from '@/components/ui/stat'
 import { dashboardQuery, groupsQuery } from '@/lib/api/queries'
 import type { DashboardGroupCard, Group } from '@/lib/api/types'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { money } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
 
@@ -19,6 +20,7 @@ import { GroupFormModal } from './group-form-modal'
 type Tab = 'active' | 'archived'
 
 export function GroupsPage() {
+  const t = useT()
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<Tab>('active')
   const [creating, setCreating] = useState(false)
@@ -37,27 +39,27 @@ export function GroupsPage() {
   return (
     <>
       <PageHeader
-        title="Guruhlar"
-        description={data ? `${data.total} ta guruh` : undefined}
+        title={t.groups.title}
+        description={data ? t.groups.countCaption(data.total) : undefined}
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <nav className="flex gap-1 border-b border-slate-200" aria-label="Guruh holati">
+        <nav className="flex gap-1 border-b border-slate-200" aria-label={t.groups.title}>
           <TabButton active={tab === 'active'} count={active.length} onClick={() => setTab('active')}>
-            Faol
+            {t.groups.tabActive}
           </TabButton>
           <TabButton
             active={tab === 'archived'}
             count={archived.length}
             onClick={() => setTab('archived')}
           >
-            Arxiv
+            {t.groups.tabArchived}
           </TabButton>
         </nav>
 
         <div className="w-full max-w-xs">
           <Input
-            placeholder="Guruh nomi bo&rsquo;yicha qidirish"
+            placeholder={t.groups.searchPlaceholder}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -69,11 +71,11 @@ export function GroupsPage() {
 
       {data && groups.length === 0 && (
         <EmptyState
-          title={search ? 'Topilmadi' : "Hali guruh yo'q"}
-          description={search ? undefined : 'Birinchi guruhni yarating'}
+          title={search ? t.groups.notFound : t.groups.noGroupsYet}
+          description={search ? undefined : t.groups.createFirst}
           action={
             search ? undefined : (
-              <Button onClick={() => setCreating(true)}>Guruh yaratish</Button>
+              <Button onClick={() => setCreating(true)}>{t.groups.createGroup}</Button>
             )
           }
         />
@@ -85,6 +87,7 @@ export function GroupsPage() {
             <GroupCard
               key={group.id}
               group={group}
+              t={t}
               money={dashboard.data?.groups.find(
                 (card) => card.group_id === group.id,
               )}
@@ -92,10 +95,12 @@ export function GroupsPage() {
           ))}
 
           {/* Yaratish kartasi faol ro'yxat oxirida — arxivda yangi guruh ochilmaydi. */}
-          {tab === 'active' && <NewGroupCard onClick={() => setCreating(true)} />}
+          {tab === 'active' && (
+            <NewGroupCard label={t.groups.newGroup} onClick={() => setCreating(true)} />
+          )}
 
           {tab === 'archived' && archived.length === 0 && (
-            <p className="text-sm text-slate-500">Arxivlangan guruh yo&rsquo;q</p>
+            <p className="text-sm text-slate-500">{t.groups.noArchived}</p>
           )}
         </div>
       )}
@@ -138,9 +143,11 @@ function TabButton({
 function GroupCard({
   group,
   money: payments,
+  t,
 }: {
   group: Group
   money?: DashboardGroupCard
+  t: Dictionary
 }) {
   const navigate = useNavigate()
 
@@ -152,7 +159,7 @@ function GroupCard({
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-slate-900">{group.name}</h3>
-        {group.status === 'archived' && <Badge>Arxiv</Badge>}
+        {group.status === 'archived' && <Badge>{t.groups.archiveBadge}</Badge>}
       </div>
 
       <p className="mt-0.5 line-clamp-1 text-sm text-slate-500">
@@ -162,11 +169,15 @@ function GroupCard({
       <div className="mt-4 flex items-end justify-between">
         <div>
           <p className="text-2xl font-semibold text-slate-900">{group.student_count}</p>
-          <p className="text-xs uppercase tracking-wide text-slate-400">o&rsquo;quvchi</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">
+            {t.groups.studentUnit}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-sm font-medium text-slate-800">{money(group.monthly_fee)}</p>
-          <p className="text-xs uppercase tracking-wide text-slate-400">oylik</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">
+            {t.groups.monthlyUnit}
+          </p>
         </div>
       </div>
 
@@ -182,7 +193,7 @@ function GroupCard({
             </span>
             {payments.total_debt > 0 && (
               <span className="tabular text-unpaid">
-                qarz {money(payments.total_debt)}
+                {t.groups.debtLabel} {money(payments.total_debt)}
               </span>
             )}
           </p>
@@ -201,7 +212,7 @@ function GroupCard({
               void navigate(`/groups/${group.id}/attendance`)
             }}
           >
-            Davomat
+            {t.groups.attendanceBtn}
           </Button>
           <Button
             variant="ghost"
@@ -212,7 +223,7 @@ function GroupCard({
               void navigate(`/groups/${group.id}/payments`)
             }}
           >
-            To&rsquo;lovlar
+            {t.groups.paymentsBtn}
           </Button>
         </div>
       )}
@@ -220,7 +231,7 @@ function GroupCard({
   )
 }
 
-function NewGroupCard({ onClick }: { onClick: () => void }) {
+function NewGroupCard({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -228,7 +239,7 @@ function NewGroupCard({ onClick }: { onClick: () => void }) {
       className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 p-5 text-slate-500 transition-colors hover:border-brand-600 hover:text-brand-600"
     >
       <span className="text-2xl leading-none">+</span>
-      <span className="text-sm font-medium">Yangi guruh</span>
+      <span className="text-sm font-medium">{label}</span>
     </button>
   )
 }

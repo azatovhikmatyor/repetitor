@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast'
 import { api } from '@/lib/api/client'
 import { groupQuery, groupStudentsQuery, qk } from '@/lib/api/queries'
 import type { Group, GroupStudent } from '@/lib/api/types'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { formatDate, money } from '@/lib/format'
 
 import { AddStudentModal } from './add-student-modal'
@@ -29,6 +30,7 @@ export function GroupDetailPage() {
   const id = Number(groupId)
   const navigate = useNavigate()
   const toast = useToast()
+  const t = useT()
   const queryClient = useQueryClient()
 
   const group = useQuery(groupQuery(id))
@@ -63,7 +65,7 @@ export function GroupDetailPage() {
     mutationFn: () => api.delete(`/groups/${id}`),
     onSuccess: async () => {
       await refreshGroup()
-      toast.success("Guruh o'chirildi")
+      toast.success(t.groups.detail.deletedToast)
       void navigate('/groups')
     },
     // Ma'lumoti bor guruh o'chirilmaydi — server 409 va tushuntirish qaytaradi.
@@ -95,8 +97,8 @@ export function GroupDetailPage() {
       api.delete(`/groups/${id}/students/${entry.student.id}`),
     onSuccess: async (_result, entry) => {
       await refreshGroup()
-      toast.undo(`${entry.student.full_name} guruhdan chiqarildi`, {
-        label: 'Qaytarish',
+      toast.undo(t.groups.detail.removedUndo(entry.student.full_name), {
+        label: t.groups.detail.undoLabel,
         onClick: () => restoreMutation.mutate(entry),
       })
     },
@@ -116,28 +118,28 @@ export function GroupDetailPage() {
       <PageHeader
         title={data.name}
         description={data.description ?? undefined}
-        back={{ to: '/groups', label: 'Guruhlar' }}
+        back={{ to: '/groups', label: t.groups.detail.backLabel }}
         actions={
           <>
             {/* Hammasi bir xil ko'rinishda: bu tugmalar boshqa sahifaga
                 o'tkazadi, shu sahifadagi holatni bildirmaydi. */}
             <Link to={`/groups/${id}/attendance`}>
-              <Button variant="secondary">Davomat</Button>
+              <Button variant="secondary">{t.groups.attendanceBtn}</Button>
             </Link>
             <Link to={`/groups/${id}/payments`}>
-              <Button variant="secondary">To&rsquo;lovlar</Button>
+              <Button variant="secondary">{t.groups.paymentsBtn}</Button>
             </Link>
             <Button
               variant="ghost"
               onClick={() => setConfirm(isArchived ? 'unarchive' : 'archive')}
             >
-              {isArchived ? 'Arxivdan qaytarish' : 'Arxivlash'}
+              {isArchived ? t.groups.detail.unarchiveTitle : t.groups.detail.archiveTitle}
             </Button>
             <button
               type="button"
               onClick={() => setEditing(true)}
-              title="Guruh sozlamalari"
-              aria-label="Guruh sozlamalari"
+              title={t.groups.detail.scheduleSettings}
+              aria-label={t.groups.detail.scheduleSettings}
               className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
             >
               <Icon name="settings" />
@@ -149,27 +151,39 @@ export function GroupDetailPage() {
       <div className="space-y-6">
         <Card>
           <CardBody className="grid gap-6 sm:grid-cols-3">
-            <Stat label="Oylik to&rsquo;lov" value={money(data.monthly_fee)} caption="so&rsquo;m" />
             <Stat
-              label="Oylik kutilma"
+              label={t.groups.detail.monthlyFee}
+              value={money(data.monthly_fee)}
+              caption={t.common.somUnit}
+            />
+            <Stat
+              label={t.groups.detail.monthlyExpected}
               value={money(data.expected_monthly)}
               caption={
                 data.student_count * data.monthly_fee > data.expected_monthly
-                  ? `${data.student_count} o'quvchi · chegirma ${money(
-                      data.student_count * data.monthly_fee - data.expected_monthly,
-                    )}`
-                  : `${data.student_count} o'quvchi`
+                  ? t.groups.detail.expectedWithDiscount(
+                      data.student_count,
+                      money(
+                        data.student_count * data.monthly_fee - data.expected_monthly,
+                      ),
+                    )
+                  : t.groups.detail.expectedNoDiscount(data.student_count)
               }
             />
             <div>
-              <Stat label="Jadval" value={data.schedule ?? 'kiritilmagan'} />
+              <Stat
+                label={t.groups.detail.scheduleLabel}
+                value={data.schedule ?? t.common.notEntered}
+              />
               <Button
                 variant="ghost"
                 size="sm"
                 className="mt-1 -ml-3"
                 onClick={() => setSchedule(true)}
               >
-                {data.schedule ? 'Jadvalni o’zgartirish' : 'Jadval kiritish'}
+                {data.schedule
+                  ? t.groups.detail.changeSchedule
+                  : t.groups.detail.enterSchedule}
               </Button>
             </div>
           </CardBody>
@@ -178,16 +192,13 @@ export function GroupDetailPage() {
         {isArchived && (
           <Card className="border-slate-300 bg-slate-100">
             <CardBody className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-600">
-                Guruh arxivlangan: tarix saqlanadi, yangi davomat va to&rsquo;lov
-                qo&rsquo;shilmaydi.
-              </p>
+              <p className="text-sm text-slate-600">{t.groups.detail.archivedNotice}</p>
               <Button
                 variant="danger"
                 size="sm"
                 onClick={() => setConfirm('delete')}
               >
-                O&rsquo;chirish
+                {t.common.delete}
               </Button>
             </CardBody>
           </Card>
@@ -195,8 +206,8 @@ export function GroupDetailPage() {
 
         <Card>
           <CardHeader
-            title="O&rsquo;quvchilar"
-            description={`${data.student_count} ta faol`}
+            title={t.groups.detail.studentsTitle}
+            description={t.groups.detail.activeCount(data.student_count)}
             action={
               !isArchived && (
                 <span className="flex flex-wrap gap-2">
@@ -205,10 +216,10 @@ export function GroupDetailPage() {
                     size="sm"
                     onClick={() => setImporting(true)}
                   >
-                    Ro&rsquo;yxatdan
+                    {t.groups.detail.fromList}
                   </Button>
                   <Button size="sm" onClick={() => setAdding(true)}>
-                    O&rsquo;quvchi qo&rsquo;shish
+                    {t.groups.detail.addStudent}
                   </Button>
                 </span>
               )
@@ -222,10 +233,14 @@ export function GroupDetailPage() {
 
           {students.data && students.data.length === 0 && (
             <EmptyState
-              title="Guruhda o&rsquo;quvchi yo&rsquo;q"
-              description="Yangi o&rsquo;quvchi yarating yoki mavjudini qo&rsquo;shing"
+              title={t.groups.detail.noStudents}
+              description={t.groups.detail.noStudentsDesc}
               action={
-                !isArchived && <Button size="sm" onClick={() => setAdding(true)}>Qo&rsquo;shish</Button>
+                !isArchived && (
+                  <Button size="sm" onClick={() => setAdding(true)}>
+                    {t.common.add}
+                  </Button>
+                )
               }
             />
           )}
@@ -237,7 +252,7 @@ export function GroupDetailPage() {
               columns={[
                 {
                   key: 'name',
-                  header: 'Ism',
+                  header: t.groups.detail.colName,
                   primary: true,
                   cell: (entry) => (
                     <Link
@@ -255,20 +270,20 @@ export function GroupDetailPage() {
                 },
                 {
                   key: 'phone',
-                  header: 'Telefon',
+                  header: t.groups.detail.colPhone,
                   cell: (entry) => (
                     <span className="text-slate-500">{entry.student.phone ?? '—'}</span>
                   ),
                 },
                 {
                   key: 'fee',
-                  header: 'Oylik narx',
+                  header: t.groups.detail.colFee,
                   align: 'right',
-                  cell: (entry) => <FeeCell entry={entry} />,
+                  cell: (entry) => <FeeCell entry={entry} t={t} />,
                 },
                 {
                   key: 'joined',
-                  header: "Qo'shilgan",
+                  header: t.groups.detail.colJoined,
                   cell: (entry) => (
                     <span className="text-slate-500">{formatDate(entry.joined_on)}</span>
                   ),
@@ -281,14 +296,14 @@ export function GroupDetailPage() {
                     isArchived ? null : (
                       <span className="flex justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => setFeeFor(entry)}>
-                          Narx
+                          {t.groups.detail.priceBtn}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removeMutation.mutate(entry)}
                         >
-                          Chiqarish
+                          {t.groups.detail.removeBtn}
                         </Button>
                       </span>
                     ),
@@ -335,18 +350,18 @@ export function GroupDetailPage() {
         onClose={() => setConfirm(null)}
         onConfirm={() => archiveMutation.mutate(true)}
         loading={archiveMutation.isPending}
-        title="Arxivlash"
-        message="Guruh o'chirilmaydi — arxivga o'tadi. Barcha to'lov va davomat tarixi saqlanadi, lekin yangi yozuv qo'shilmaydi."
-        confirmLabel="Arxivlash"
+        title={t.groups.detail.archiveTitle}
+        message={t.groups.detail.archiveMessage}
+        confirmLabel={t.groups.detail.archiveTitle}
       />
       <ConfirmModal
         open={confirm === 'unarchive'}
         onClose={() => setConfirm(null)}
         onConfirm={() => archiveMutation.mutate(false)}
         loading={archiveMutation.isPending}
-        title="Arxivdan qaytarish"
-        message="Guruh yana faol bo'ladi va unga davomat hamda to'lov qo'shish mumkin."
-        confirmLabel="Qaytarish"
+        title={t.groups.detail.unarchiveTitle}
+        message={t.groups.detail.unarchiveMessage}
+        confirmLabel={t.groups.detail.undoLabel}
       />
       <ConfirmModal
         open={confirm === 'delete'}
@@ -354,19 +369,19 @@ export function GroupDetailPage() {
         onConfirm={() => deleteMutation.mutate()}
         loading={deleteMutation.isPending}
         destructive
-        title="Guruhni o'chirish"
-        message="Faqat o'quvchisiz va davomatsiz guruhni o'chirish mumkin. Bu amalni qaytarib bo'lmaydi."
-        confirmLabel="O'chirish"
+        title={t.groups.detail.deleteTitle}
+        message={t.groups.detail.deleteMessage}
+        confirmLabel={t.common.delete}
       />
     </>
   )
 }
 
-function FeeCell({ entry }: { entry: GroupStudent }) {
+function FeeCell({ entry, t }: { entry: GroupStudent; t: Dictionary }) {
   if (entry.custom_fee === 0) {
     return (
       <span className="inline-flex flex-col items-end">
-        <Badge tone="brand">Bepul</Badge>
+        <Badge tone="brand">{t.groups.detail.freeBadge}</Badge>
         {entry.fee_note && (
           <span className="mt-0.5 text-xs text-slate-400">{entry.fee_note}</span>
         )}
@@ -403,6 +418,7 @@ function CustomFeeModal({
   onSaved: () => Promise<void>
 }) {
   const toast = useToast()
+  const t = useT()
   const [fee, setFee] = useState<FeeDraft>(() =>
     initialFee(entry.custom_fee, entry.fee_note),
   )
@@ -426,20 +442,20 @@ function CustomFeeModal({
     <Modal
       open
       onClose={onClose}
-      title="Oylik narx"
+      title={t.groups.detail.customFeeTitle}
       description={entry.student.full_name}
       width="max-w-sm"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t.common.cancel}
           </Button>
           <Button
             loading={feeMutation.isPending}
             disabled={fee.mode === 'custom' && !fee.amount}
             onClick={() => feeMutation.mutate()}
           >
-            Saqlash
+            {t.common.save}
           </Button>
         </>
       }
@@ -454,10 +470,9 @@ function CustomFeeModal({
           className="mt-0.5 size-4 rounded border-slate-300 text-brand-600"
         />
         <span>
-          Shu oyning hisobiga ham qo&rsquo;llansin
+          {t.groups.detail.applyCurrentMonth}
           <span className="block text-xs text-slate-500">
-            Shu oyda to&rsquo;lov qilingan bo&rsquo;lsa hisob o&rsquo;zgarmaydi.
-            O&rsquo;tgan oylar har doim o&rsquo;z holicha qoladi.
+            {t.groups.detail.applyCurrentMonthHint}
           </span>
         </span>
       </label>

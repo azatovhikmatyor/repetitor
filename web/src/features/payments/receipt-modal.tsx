@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Printable, print } from '@/components/ui/printable'
 import type { Payment } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { formatDateTime, money, monthName } from '@/lib/format'
 import { methodLabel } from '@/lib/labels'
 
@@ -20,39 +21,42 @@ export function ReceiptModal({
   teacherName: string
   onClose: () => void
 }) {
+  const t = useT()
   const number = `${payment.year}${String(payment.month).padStart(2, '0')}-${payment.id}`
 
   const body = (
     <div className="mx-auto max-w-md">
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-3">
         <div>
-          <p className="text-lg font-semibold">To&rsquo;lov kvitansiyasi</p>
-          <p className="text-sm text-slate-500">№ {number}</p>
+          <p className="text-lg font-semibold">{t.payments.receipt.documentTitle}</p>
+          <p className="text-sm text-slate-500">
+            {t.payments.receipt.numberPrefix} {number}
+          </p>
         </div>
         <p className="text-sm text-slate-500">{formatDateTime(payment.paid_at)}</p>
       </div>
 
       <dl className="space-y-2 py-4 text-sm">
-        <Row label="O&rsquo;quvchi" value={payment.full_name} />
-        <Row label="Guruh" value={payment.group_name} />
+        <Row label={t.payments.receipt.student} value={payment.full_name} />
+        <Row label={t.payments.receipt.group} value={payment.group_name} />
         <Row
-          label="Davr"
+          label={t.payments.receipt.period}
           value={`${monthName(payment.month)} ${payment.year}`}
         />
-        <Row label="To&rsquo;lov turi" value={methodLabel[payment.method]} />
-        {payment.note && <Row label="Izoh" value={payment.note} />}
+        <Row label={t.payments.receipt.method} value={methodLabel(t)[payment.method]} />
+        {payment.note && <Row label={t.payments.receipt.note} value={payment.note} />}
       </dl>
 
       <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-        <span className="text-sm text-slate-500">Summa</span>
+        <span className="text-sm text-slate-500">{t.payments.receipt.amount}</span>
         <span className="text-xl font-semibold">
-          {money(payment.amount)} so&rsquo;m
+          {money(payment.amount)} {t.common.somUnit}
         </span>
       </div>
 
       <div className="mt-8 flex justify-between text-xs text-slate-500">
-        <span>Qabul qildi: {teacherName}</span>
-        <span>Imzo: ____________</span>
+        <span>{t.payments.receipt.receivedBy(teacherName)}</span>
+        <span>{t.payments.receipt.signature}</span>
       </div>
     </div>
   )
@@ -62,14 +66,14 @@ export function ReceiptModal({
       <Modal
         open
         onClose={onClose}
-        title="Kvitansiya"
+        title={t.payments.receipt.title}
         width="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={onClose}>
-              Yopish
+              {t.payments.receipt.close}
             </Button>
-            <Button onClick={print}>Chop etish</Button>
+            <Button onClick={print}>{t.payments.receipt.print}</Button>
           </>
         }
       >

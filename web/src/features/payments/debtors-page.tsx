@@ -12,6 +12,7 @@ import { Stat } from '@/components/ui/stat'
 import { EmptyState, ErrorState, Loading } from '@/components/ui/states'
 import { debtorsQuery } from '@/lib/api/queries'
 import type { Debtor } from '@/lib/api/types'
+import { useT } from '@/lib/i18n'
 import { money } from '@/lib/format'
 import { currentPeriod } from '@/lib/period'
 
@@ -24,6 +25,7 @@ import { QuickPaymentModal } from './quick-payment-modal'
  * ko'radi va to'lovni o'sha zahoti kiritadi.
  */
 export function DebtorsPage() {
+  const t = useT()
   const [period, setPeriod] = useState(currentPeriod())
   const [paying, setPaying] = useState<Debtor | null>(null)
 
@@ -32,9 +34,9 @@ export function DebtorsPage() {
   return (
     <>
       <PageHeader
-        title="Qarzdorlar"
-        description={data ? `${data.items.length} ta o'quvchi` : undefined}
-        back={{ to: '/', label: 'Bosh sahifa' }}
+        title={t.payments.debtors.title}
+        description={data ? t.payments.debtors.countCaption(data.items.length) : undefined}
+        back={{ to: '/', label: t.payments.debtors.backHome }}
         actions={<MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />}
       />
 
@@ -46,9 +48,9 @@ export function DebtorsPage() {
           <Card>
             <CardBody>
               <Stat
-                label="Umumiy qarz"
+                label={t.payments.debtors.totalDebt}
                 value={money(data.total_debt)}
-                caption="so&rsquo;m"
+                caption={t.common.somUnit}
                 tone={data.total_debt > 0 ? 'unpaid' : undefined}
               />
             </CardBody>
@@ -57,8 +59,8 @@ export function DebtorsPage() {
           <Card>
             {data.items.length === 0 ? (
               <EmptyState
-                title="Qarzdor yo&rsquo;q"
-                description="Bu oy uchun hamma to&rsquo;lagan"
+                title={t.payments.debtors.noDebtors}
+                description={t.payments.debtors.allPaid}
               />
             ) : (
               <DataTable
@@ -67,7 +69,7 @@ export function DebtorsPage() {
                 columns={[
                   {
                     key: 'name',
-                    header: "O'quvchi",
+                    header: t.payments.debtors.colStudent,
                     primary: true,
                     cell: (debtor) => (
                       <Link
@@ -80,7 +82,7 @@ export function DebtorsPage() {
                   },
                   {
                     key: 'group',
-                    header: 'Guruh',
+                    header: t.payments.debtors.colGroup,
                     cell: (debtor) => (
                       <Link
                         to={`/groups/${debtor.group_id}/payments`}
@@ -92,7 +94,7 @@ export function DebtorsPage() {
                   },
                   {
                     key: 'phone',
-                    header: 'Telefon',
+                    header: t.payments.debtors.colPhone,
                     cell: (debtor) =>
                       debtor.phone ? (
                         <a href={`tel:${debtor.phone}`} className="text-slate-500 hover:underline">
@@ -104,11 +106,11 @@ export function DebtorsPage() {
                   },
                   {
                     key: 'balance',
-                    header: 'Qarz',
+                    header: t.payments.debtors.colDebt,
                     align: 'right',
                     cell: (debtor) => (
                       <Badge tone={debtor.amount_paid > 0 ? 'partial' : 'unpaid'}>
-                        {debtor.amount_paid > 0 ? 'qisman' : "to'lanmagan"} ·{' '}
+                        {debtor.amount_paid > 0 ? t.payments.debtors.partial : t.payments.debtors.unpaid} ·{' '}
                         {money(debtor.balance)}
                       </Badge>
                     ),
@@ -119,7 +121,7 @@ export function DebtorsPage() {
                     footer: true,
                     cell: (debtor) => (
                       <Button size="sm" variant="secondary" onClick={() => setPaying(debtor)}>
-                        To&rsquo;lov
+                        {t.payments.debtors.payBtn}
                       </Button>
                     ),
                   },

@@ -658,14 +658,22 @@ async def reset_student_password(
     """O'qituvchi o'z o'quvchisiga yangi vaqtinchalik parol beradi.
 
     O'quvchi parolni o'zi tiklay olmaydi (talab 3) — u o'qituvchisiga
-    murojaat qiladi.
+    murojaat qiladi. Shu sababli bu faqat o'quvchi avval so'rov yuborgan
+    bo'lsa ishlaydi — o'qituvchi parolni o'z ixtiyori bilan, istalgan
+    payt o'zgartira olmaydi.
     """
     from app.modules.auth.service import revoke_all_tokens
 
     student = await get_owned_student(db, teacher_id=teacher_id, student_id=student_id)
+    if student.password_reset_requested_at is None:
+        raise ConflictError(
+            "O'quvchidan parolni tiklash so'rovi kelmagan. "
+            "U ilovaga kirolmay qolganda so'rov yuboradi."
+        )
     temp_password = generate_temp_password()
     student.password_hash = hash_password(temp_password)
     student.must_change_password = True
+    student.password_reset_requested_at = None
     await revoke_all_tokens(db, student.id)
     await db.flush()
     return temp_password

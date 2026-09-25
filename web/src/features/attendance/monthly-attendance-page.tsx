@@ -11,6 +11,7 @@ import { attendanceMonthlyQuery, groupQuery } from '@/lib/api/queries'
 import type { AttendanceStatus, MonthlyColumn } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
 import { downloadCsv, slug } from '@/lib/export'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { percent } from '@/lib/format'
 import { currentPeriod } from '@/lib/period'
 
@@ -25,6 +26,7 @@ import { currentPeriod } from '@/lib/period'
 export function MonthlyAttendancePage() {
   const { groupId } = useParams()
   const id = Number(groupId)
+  const t = useT()
   const [period, setPeriod] = useState(currentPeriod())
 
   const { data, isPending, error, refetch } = useQuery(attendanceMonthlyQuery(id, period))
@@ -33,8 +35,12 @@ export function MonthlyAttendancePage() {
   return (
     <>
       <PageHeader
-        title={group.data ? `${group.data.name} — oylik davomat` : 'Oylik davomat'}
-        back={{ to: `/groups/${id}/attendance`, label: 'Davomat' }}
+        title={
+          group.data
+            ? `${group.data.name} — ${t.attendance.monthly.title.toLowerCase()}`
+            : t.attendance.monthly.title
+        }
+        back={{ to: `/groups/${id}/attendance`, label: t.attendance.monthly.backLabel }}
         actions={
           <>
             <Button
@@ -47,27 +53,27 @@ export function MonthlyAttendancePage() {
                     period.month,
                   ).padStart(2, '0')}`,
                   [
-                    "O'quvchi",
+                    t.attendance.monthly.csvStudentHeader,
                     ...data.columns.map((column) =>
                       column.start_time
                         ? `${column.lesson_date} ${column.start_time.slice(0, 5)}`
                         : column.lesson_date,
                     ),
-                    'Foiz',
+                    t.attendance.monthly.csvPercentHeader,
                   ],
                   data.students.map((row) => [
                     row.full_name,
                     ...data.columns.map((column) =>
                       column.is_cancelled
-                        ? 'dars yo‘q'
-                        : (MARK_TEXT[row.marks[column.key]] ?? ''),
+                        ? t.attendance.monthly.csvNoLesson
+                        : (CSV_MARK[row.marks[column.key]]?.(t) ?? ''),
                     ),
                     `${row.attendance_rate}%`,
                   ]),
                 )
               }}
             >
-              Excel
+              {t.common.export}
             </Button>
             <MonthPicker value={period} onChange={setPeriod} max={currentPeriod()} />
           </>
@@ -80,8 +86,8 @@ export function MonthlyAttendancePage() {
 
         {data && data.columns.length === 0 && (
           <EmptyState
-            title="Bu oyda dars yo&rsquo;q"
-            description="Guruh jadvali kiritilmagan yoki bu oyda dars bo&rsquo;lmagan"
+            title={t.attendance.monthly.noLessons}
+            description={t.attendance.monthly.noLessonsDesc}
           />
         )}
 
@@ -92,12 +98,12 @@ export function MonthlyAttendancePage() {
                 <tr>
                   {/* Ism ustuni chapda qotib turadi — jadval kengaysa ham. */}
                   <th className="sticky left-0 z-10 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                    O&rsquo;quvchi
+                    {t.attendance.monthly.studentCol}
                   </th>
                   {data.columns.map((column) => (
                     <th
                       key={column.key}
-                      title={columnTitle(column)}
+                      title={columnTitle(column, t)}
                       className={cn(
                         'w-10 border-b border-slate-200 bg-slate-50 px-1 py-2.5 text-center text-xs font-medium',
                         column.is_cancelled
@@ -118,7 +124,7 @@ export function MonthlyAttendancePage() {
                     </th>
                   ))}
                   <th className="border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                    Foiz
+                    {t.attendance.monthly.percentCol}
                   </th>
                 </tr>
               </thead>
@@ -135,7 +141,7 @@ export function MonthlyAttendancePage() {
                       >
                         {column.is_cancelled ? (
                           <span
-                            title="Dars bo&rsquo;lmagan"
+                            title={t.attendance.monthly.lessonNotHeld}
                             className="text-xs text-slate-300"
                           >
                             &times;
@@ -169,20 +175,20 @@ export function MonthlyAttendancePage() {
 }
 
 /** CSV uchun: belgilar o'rniga matn. */
-const MARK_TEXT: Partial<Record<AttendanceStatus, string>> = {
-  present: 'bor',
-  absent: "yo'q",
-  late: 'kech',
-  excused: 'sababli',
+const CSV_MARK: Partial<Record<AttendanceStatus, (t: Dictionary) => string>> = {
+  present: (t) => t.attendance.monthly.csvPresent,
+  absent: (t) => t.attendance.monthly.csvAbsent,
+  late: (t) => t.attendance.monthly.csvLate,
+  excused: (t) => t.attendance.monthly.csvExcused,
 }
 
-function columnTitle(column: MonthlyColumn): string {
+function columnTitle(column: MonthlyColumn, t: Dictionary): string {
   const time = column.start_time ? ` ${column.start_time.slice(0, 5)}` : ''
   const state = column.is_cancelled
-    ? " — dars bo'lmagan"
+    ? t.attendance.monthly.titleSuffixCancelled
     : column.is_saved
       ? ''
-      : ' — davomat kiritilmagan'
+      : t.attendance.monthly.titleSuffixUnsaved
   return `${column.lesson_date}${time}${state}`
 }
 

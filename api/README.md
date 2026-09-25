@@ -43,6 +43,57 @@ Testlar va linter (Postgres kerak emas — SQLite ustida ishlaydi):
 .venv/Scripts/python -m ruff check app tests
 ```
 
+## Deploy (frontend + backend bitta process'da)
+
+Alohida nginx yoki static hosting (GitHub Pages, S3...) shart emas:
+backend `web/dist`ni (agar mavjud bo'lsa) o'zi serve qiladi — bitta
+process, bitta origin, CORS kerak emas.
+
+```bash
+cd ../web && npm run build     # web/dist hosil bo'ladi
+cd ../api
+.venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Endi `http://localhost:8000` ochilsa React ilova ko'rinadi, `/api/v1/...`
+va `/media` esa backend'ning o'zi. Ishlash tartibi ([app/main.py](app/main.py)):
+
+* `/assets/*` — `web/dist/assets` dan to'g'ridan-to'g'ri (JS/CSS, hash'li
+  fayl nomlari — brauzer abadiy keshlaydi).
+* `/api/v1/*`, `/media/*`, `/health`, `/docs` — odatdagidek backend.
+* Qolgan har qanday yo'l (`/groups/5`, `/settings`...) — mos fayl
+  topilmasa `index.html` qaytariladi, marshrutlashni React Router
+  brauzer tomonida davom ettiradi (sahifa yangilanganda ham ishlaydi).
+
+`web/dist` topilmasa (masalan `npm run build` bajarilmagan, faqat API
+bilan ishlanayotgan lokal dev'da) bu bo'lim jim o'tkazib yuboriladi —
+API o'zgarishsiz ishlayveradi. Joylashuvni `WEB_DIST_DIR` orqali
+o'zgartirish mumkin (standart: `../web/dist`).
+
+### Vaqtincha "desktop app" sifatida (shaxsiy kompyuterda sinash uchun)
+
+`desktop.py` — yuqoridagi bitta-process rejimni brauzer o'rniga alohida
+oynada ochadi (pywebview): URL satri yo'q, xuddi oddiy dastur kabi. Oyna
+yopilganda server ham to'xtaydi.
+
+```bash
+cd ../web && npm run build     # web/dist yangi bo'lishi kerak
+cd ../api
+.venv/Scripts/python -m pip install -r requirements-desktop.txt
+.venv/Scripts/python scripts/create_desktop_shortcut.py   # bir martalik: Desktop'da ikonka yaratadi
+```
+
+Shundan keyin Desktop'dagi **Repetitor** ikonkasiga ikki marta bosish
+kifoya — server o'zi ishga tushadi (`127.0.0.1:8765`, oddiy dev
+portlar 8000/5174 bilan to'qnashmasin deb), oyna ochiladi, yopganda
+hammasi to'xtaydi. `desktop.py`ni to'g'ridan-to'g'ri ham ishga
+tushirish mumkin: `.venv/Scripts/python desktop.py`.
+
+Bu faqat shaxsiy/vaqtinchalik sinov uchun — boshqa kompyuterga
+tarqatish uchun emas (u yerda ham Python, ham loyihaning o'zi
+kerak bo'ladi). Shunga mos ravishda kodni buzmaydigan tarzda,
+prod/deploy oqimidan butunlay alohida (`requirements-desktop.txt`).
+
 ## Arxitektura
 
 Haqiqiy microservice emas — **modulli monolith**. Har bir modul o'z

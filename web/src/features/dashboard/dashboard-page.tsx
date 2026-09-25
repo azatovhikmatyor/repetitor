@@ -12,6 +12,7 @@ import { dashboardQuery } from '@/lib/api/queries'
 import { useAuth } from '@/lib/auth/auth-context'
 import { QuickPaymentModal } from '@/features/payments/quick-payment-modal'
 import { cn } from '@/lib/cn'
+import { useT, type Dictionary } from '@/lib/i18n'
 import { money, monthName, percent } from '@/lib/format'
 
 /**
@@ -22,6 +23,7 @@ import { money, monthName, percent } from '@/lib/format'
  */
 export function DashboardPage() {
   const { user } = useAuth()
+  const t = useT()
   const { data, isPending, error, refetch } = useQuery(dashboardQuery())
   const [paying, setPaying] = useState(false)
 
@@ -30,11 +32,9 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title={firstName ? `Salom, ${firstName}` : 'Bosh sahifa'}
+        title={firstName ? t.dashboard.greeting(firstName) : t.dashboard.title}
         description={data ? `${monthName(data.month)} ${data.year}` : undefined}
-        actions={
-          <Button onClick={() => setPaying(true)}>To&rsquo;lov qabul qilish</Button>
-        }
+        actions={<Button onClick={() => setPaying(true)}>{t.dashboard.recordPayment}</Button>}
       />
 
       {isPending && <Loading rows={4} />}
@@ -45,37 +45,38 @@ export function DashboardPage() {
           <Card>
             <CardBody className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <Stat
-                label="Yig&rsquo;ilgan"
+                label={t.dashboard.collected}
                 value={money(data.collected)}
-                caption="so&rsquo;m"
+                caption={t.common.somUnit}
                 tone="paid"
               />
-              <Stat label="Kutilgan" value={money(data.expected)} caption="so&rsquo;m" />
               <Stat
-                label="Qarz"
+                label={t.dashboard.expected}
+                value={money(data.expected)}
+                caption={t.common.somUnit}
+              />
+              <Stat
+                label={t.dashboard.debt}
                 value={money(data.debt)}
-                caption={`${data.debtor_count} ta qarzdor · ro'yxat ›`}
+                caption={t.dashboard.debtorsCaption(data.debtor_count)}
                 tone={data.debt > 0 ? 'unpaid' : undefined}
                 to={data.debt > 0 ? '/debtors' : undefined}
               />
               <Stat
-                label={data.expenses > 0 ? 'Foyda' : "Yig'ilish"}
+                label={data.expenses > 0 ? t.dashboard.profit : t.dashboard.collectionRate}
                 value={
-                  data.expenses > 0
-                    ? money(data.profit)
-                    : percent(data.collection_rate)
+                  data.expenses > 0 ? money(data.profit) : percent(data.collection_rate)
                 }
                 caption={
                   data.expenses > 0
-                    ? `xarajat ${money(data.expenses)}`
-                    : `${data.active_student_count} o'quvchi · ${data.active_group_count} guruh`
+                    ? t.dashboard.expensesCaption(money(data.expenses))
+                    : t.dashboard.studentsAndGroups(
+                        data.active_student_count,
+                        data.active_group_count,
+                      )
                 }
                 tone={
-                  data.expenses > 0
-                    ? data.profit >= 0
-                      ? 'paid'
-                      : 'unpaid'
-                    : undefined
+                  data.expenses > 0 ? (data.profit >= 0 ? 'paid' : 'unpaid') : undefined
                 }
                 to={data.expenses > 0 ? '/expenses' : '/reports'}
               />
@@ -88,12 +89,12 @@ export function DashboardPage() {
           </Card>
 
           {data.groups.length === 0 ? (
-            <StartHere />
+            <StartHere t={t} />
           ) : data.today_lessons.length > 0 ? (
             <Card>
               <CardHeader
-                title="Bugungi darslar"
-                description={`${data.today_lessons.length} ta dars`}
+                title={t.dashboard.todayLessons}
+                description={t.dashboard.lessonCount(data.today_lessons.length)}
               />
               <ul className="divide-y divide-slate-100">
                 {data.today_lessons.map((lesson) => (
@@ -112,15 +113,16 @@ export function DashboardPage() {
                         {lesson.group_name}
                       </Link>
                       <span className="text-xs text-slate-500">
-                        {lesson.student_count} ta o&rsquo;quvchi
-                        {lesson.end_time && ` · ${lesson.end_time.slice(0, 5)} gacha`}
+                        {t.dashboard.studentCount(lesson.student_count)}
+                        {lesson.end_time &&
+                          ` · ${t.dashboard.untilTime(lesson.end_time.slice(0, 5))}`}
                       </span>
                     </span>
 
                     {lesson.is_cancelled ? (
-                      <Badge>Dars bo&rsquo;lmadi</Badge>
+                      <Badge>{t.dashboard.lessonCancelled}</Badge>
                     ) : lesson.is_saved ? (
-                      <Badge tone="paid">Davomat olingan</Badge>
+                      <Badge tone="paid">{t.dashboard.attendanceTaken}</Badge>
                     ) : (
                       <Link
                         to={`/groups/${lesson.group_id}/attendance${
@@ -129,7 +131,7 @@ export function DashboardPage() {
                             : ''
                         }`}
                       >
-                        <Button size="sm">Davomat olish</Button>
+                        <Button size="sm">{t.dashboard.takeAttendance}</Button>
                       </Link>
                     )}
                   </li>
@@ -141,7 +143,7 @@ export function DashboardPage() {
               <Card className="border-partial/40 bg-partial/5">
                 <CardBody>
                   <p className="mb-3 text-sm font-medium text-slate-800">
-                    Bugun davomat qilinmagan
+                    {t.dashboard.noAttendanceToday}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {data.groups_without_attendance_today.map((group) => (
@@ -155,10 +157,7 @@ export function DashboardPage() {
                       </Link>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">
-                    Guruh jadvali kiritilsa, bu yerda bugungi darslar vaqti bilan
-                    ko&rsquo;rinadi.
-                  </p>
+                  <p className="mt-2 text-xs text-slate-500">{t.dashboard.scheduleHint}</p>
                 </CardBody>
               </Card>
             )
@@ -166,22 +165,22 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader
-              title="Guruhlar"
+              title={t.dashboard.groups}
               action={
                 <Link to="/groups">
                   <Button variant="secondary" size="sm">
-                    Hammasi
+                    {t.dashboard.all}
                   </Button>
                 </Link>
               }
             />
             {data.groups.length === 0 ? (
               <EmptyState
-                title="Hali guruh yo&rsquo;q"
-                description="Birinchi guruhni yarating va o&rsquo;quvchilarni qo&rsquo;shing"
+                title={t.dashboard.noGroupsYet}
+                description={t.dashboard.noGroupsDescription}
                 action={
                   <Link to="/groups">
-                    <Button size="sm">Guruh yaratish</Button>
+                    <Button size="sm">{t.dashboard.createGroup}</Button>
                   </Link>
                 }
               />
@@ -199,11 +198,11 @@ export function DashboardPage() {
                           {group.group_name}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {group.student_count} ta o&rsquo;quvchi
+                          {t.dashboard.studentCount(group.student_count)}
                         </p>
                       </div>
                       {group.attendance_taken_today && (
-                        <Badge tone="paid">Davomat bor</Badge>
+                        <Badge tone="paid">{t.dashboard.attendanceBadge}</Badge>
                       )}
                     </div>
 
@@ -222,7 +221,7 @@ export function DashboardPage() {
                       </span>
                       {group.total_debt > 0 && (
                         <span className="tabular text-xs text-unpaid">
-                          qarz {money(group.total_debt)}
+                          {t.dashboard.debt.toLowerCase()} {money(group.total_debt)}
                         </span>
                       )}
                     </div>
@@ -245,33 +244,33 @@ export function DashboardPage() {
  * Bo'sh ekran o'rniga nimadan boshlashni aytadi: guruh → jadval →
  * o'quvchilar → davomat. Guruh paydo bo'lishi bilan bu karta yo'qoladi.
  */
-function StartHere() {
+function StartHere({ t }: { t: Dictionary }) {
   const steps = [
     {
-      title: 'Guruh yarating',
-      description: 'Nomi va oylik to‘lovi bilan',
+      title: t.dashboard.onboardingStep1Title,
+      description: t.dashboard.onboardingStep1Desc,
       to: '/groups',
-      action: 'Guruhlarga o‘tish',
+      action: t.dashboard.onboardingStep1Action,
     },
     {
-      title: 'Dars jadvalini kiriting',
-      description: 'Hafta kunlari va soatlari — bugungi darslar shu yerdan chiqadi',
+      title: t.dashboard.onboardingStep2Title,
+      description: t.dashboard.onboardingStep2Desc,
     },
     {
-      title: 'O‘quvchilarni qo‘shing',
-      description: 'Bittalab yoki ro‘yxatni bir yo‘la import qilib',
+      title: t.dashboard.onboardingStep3Title,
+      description: t.dashboard.onboardingStep3Desc,
     },
     {
-      title: 'Davomat oling',
-      description: 'Kelmaganlarni belgilaysiz, qolgani avtomatik',
+      title: t.dashboard.onboardingStep4Title,
+      description: t.dashboard.onboardingStep4Desc,
     },
   ]
 
   return (
     <Card className="border-brand-200 bg-brand-50/40">
       <CardHeader
-        title="Boshlash uchun to‘rt qadam"
-        description="Har bir qadam keyingisini ochadi"
+        title={t.dashboard.onboardingTitle}
+        description={t.dashboard.onboardingSubtitle}
       />
       <CardBody>
         <ol className="space-y-3">
