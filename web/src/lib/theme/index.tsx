@@ -34,10 +34,10 @@ const THEME_LOADERS = {
 /** UI'da ko'rsatiladigan nom va tanlash oynasidagi kichik namuna ranglar. */
 const THEME_META = {
   light: { label: "Yorug'", scheme: 'light', preview: ['#ffffff', '#1e8a5f'] },
-  dark: { label: "Qorong'i", scheme: 'dark', preview: ['#1c2333', '#4fcf93'] },
-  mirage: { label: 'Mirage', scheme: 'dark', preview: ['#181c2c', '#4ad6a0'] },
-  sepia: { label: 'Sepiya', scheme: 'light', preview: ['#f6ecd9', '#5c7a3a'] },
-  nord: { label: 'Nord', scheme: 'dark', preview: ['#242c3d', '#4fcf93'] },
+  dark: { label: "Qorong'i", scheme: 'dark', preview: ['#232a3d', '#8b5cf6'] },
+  mirage: { label: 'Ayu Mirage', scheme: 'dark', preview: ['#242a38', '#e0a458'] },
+  sepia: { label: 'Sepiya', scheme: 'light', preview: ['#f6ecd9', '#c2703d'] },
+  nord: { label: 'Nord', scheme: 'dark', preview: ['#28313f', '#4fb3e8'] },
 } satisfies Record<
   keyof typeof THEME_LOADERS,
   { label: string; scheme: 'light' | 'dark'; preview: [string, string] }

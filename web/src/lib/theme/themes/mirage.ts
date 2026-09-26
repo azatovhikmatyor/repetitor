@@ -1,29 +1,39 @@
 import type { ThemeTokens } from './light'
 
-/** "Mirage" — chuqur ko'k-binafsha (navy) fonli, sokin dark tema. */
+/**
+ * "Ayu Mirage" — mashhur muharrir temasi asosida: yumshoq ko'k-kulrang
+ * fon (qop-qora emas!) va issiq oltin/apelsin urg'u rang.
+ *
+ * Avvalgi versiya juda qorong'i edi (fon deyarli qora) — bu yerda fon
+ * ayu-mirage'ning haqiqiy `#1f2430` atrofida, kartalar undan sezilarli
+ * yorug'roq.
+ */
 const mirage: ThemeTokens = {
-  'slate-50': 'oklch(12% .03 264)',
-  'slate-100': 'oklch(17% .035 264)',
-  'slate-200': 'oklch(24% .04 264)',
-  'slate-300': 'oklch(32% .045 264)',
-  'slate-400': 'oklch(48% .05 264)',
-  'slate-500': 'oklch(63% .045 262)',
-  'slate-600': 'oklch(72% .04 260)',
-  'slate-700': 'oklch(82% .035 258)',
-  'slate-800': 'oklch(90% .025 256)',
-  'slate-900': 'oklch(95.5% .012 250)',
-  white: 'oklch(18% .035 264)',
+  'slate-50': 'oklch(16% .02 230)',
+  white: 'oklch(21% .022 230)',
+  'slate-100': 'oklch(26% .024 230)',
+  'slate-200': 'oklch(34% .026 229)',
+  'slate-300': 'oklch(42% .03 228)',
+  'slate-400': 'oklch(55% .028 226)',
+  'slate-500': 'oklch(66% .024 224)',
+  'slate-600': 'oklch(75% .02 222)',
+  'slate-700': 'oklch(83% .015 220)',
+  'slate-800': 'oklch(89% .01 218)',
+  'slate-900': 'oklch(92% .008 210)',
 
-  'brand-50': 'oklch(19% .06 160)',
-  'brand-100': 'oklch(25% .08 160)',
-  'brand-200': 'oklch(31% .1 160)',
-  'brand-300': 'oklch(39% .12 160)',
-  'brand-400': 'oklch(47% .14 160)',
-  'brand-500': 'oklch(55% .16 160)',
-  'brand-600': 'oklch(60% .17 160)',
-  'brand-700': 'oklch(70% .15 160)',
-  'brand-800': 'oklch(80% .12 160)',
-  'brand-900': 'oklch(88% .09 160)',
+  // Ayu'ning imzo rangi — oltin/apelsin. 600 (tugma foni) oq matn bilan
+  // yetarli kontrast uchun ataylab quyuqroq, 700+ esa matn/havola uchun
+  // yorqinroq (haqiqiy ayu oltin rangiga yaqin).
+  'brand-50': 'oklch(20% .05 58)',
+  'brand-100': 'oklch(26% .07 58)',
+  'brand-200': 'oklch(33% .1 57)',
+  'brand-300': 'oklch(40% .13 56)',
+  'brand-400': 'oklch(44% .15 55)',
+  'brand-500': 'oklch(46% .16 54)',
+  'brand-600': 'oklch(48% .17 52)',
+  'brand-700': 'oklch(62% .17 58)',
+  'brand-800': 'oklch(75% .13 62)',
+  'brand-900': 'oklch(85% .09 66)',
 
   paid: 'oklch(66% .17 150)',
   partial: 'oklch(73% .15 80)',
