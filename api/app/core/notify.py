@@ -104,6 +104,30 @@ class EskizSmsSender(MessageSender):
             response.raise_for_status()
 
 
+class TelegramSender:
+    """Telegram bot API orqali bitta chat'ga xabar.
+
+    Email/SMS'dan farqli o'laroq manzil (`to`) chat_id, subject ishlatilmaydi
+    — shuning uchun `MessageSender` interfeysini emas, alohida `send_chat`
+    metodini ishlatadi.
+    """
+
+    _BASE_URL = "https://api.telegram.org/bot{token}/sendMessage"
+
+    async def send_chat(self, *, chat_id: str, text: str) -> None:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                self._BASE_URL.format(token=settings.telegram_bot_token),
+                json={"chat_id": chat_id, "text": text},
+            )
+            response.raise_for_status()
+
+
+class ConsoleTelegramSender(TelegramSender):
+    async def send_chat(self, *, chat_id: str, text: str) -> None:
+        logger.info("TELEGRAM -> %s | %s", chat_id, text)
+
+
 email_sender: MessageSender = (
     SmtpEmailSender() if settings.smtp_host else ConsoleSender("email")
 )
@@ -111,6 +135,9 @@ sms_sender: MessageSender = (
     EskizSmsSender()
     if settings.eskiz_email and settings.eskiz_password
     else ConsoleSender("sms")
+)
+telegram_sender: TelegramSender = (
+    TelegramSender() if settings.telegram_bot_token else ConsoleTelegramSender()
 )
 
 
@@ -169,4 +196,46 @@ async def notify_teacher_password_reset_request(
     elif teacher_phone:
         await sms_sender.send(
             to=teacher_phone, subject="O'quvchi parol so'radi", body=body
+        )
+
+
+async def notify_exam_result_to_parent(
+    *,
+    chat_id: str,
+    student_name: str,
+    quiz_title: str,
+    score: float,
+    rank: int,
+    out_of: int,
+) -> None:
+    """Imtihon muddati tugab, natija hisoblangach ota-onaga Telegram xabari."""
+    await telegram_sender.send_chat(
+        chat_id=chat_id,
+        text=(
+            f'{student_name} "{quiz_title}" testini topshirdi.\n'
+            f"Ball: {score:g}\n"
+            f"O'rin: guruhda {out_of} o'quvchi orasida {rank}-o'rin"
+        ),
+    )
+
+
+async def notify_teacher_exam_ready(
+    *,
+    teacher_email: str | None,
+    teacher_phone: str | None,
+    quiz_title: str,
+    participant_count: int,
+) -> None:
+    """Imtihon reytingi tayyor bo'lganda o'qituvchiga xabar."""
+    body = (
+        f'"{quiz_title}" imtihonining natijalari tayyor '
+        f"({participant_count} o'quvchi baholandi)."
+    )
+    if teacher_email:
+        await email_sender.send(
+            to=teacher_email, subject="Imtihon natijalari tayyor", body=body
+        )
+    elif teacher_phone:
+        await sms_sender.send(
+            to=teacher_phone, subject="Imtihon natijalari tayyor", body=body
         )

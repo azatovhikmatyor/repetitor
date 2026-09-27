@@ -19,11 +19,17 @@ import { ProfilePage } from '@/features/profile/profile-page'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { ExpensesPage } from '@/features/expenses/expenses-page'
 import { DebtorsPage } from '@/features/payments/debtors-page'
+import { AdminQuizzesCatalogPage } from '@/features/admin/quizzes-catalog-page'
+import { GradingPage } from '@/features/quizzes/grading-page'
+import { QuizDetailPage } from '@/features/quizzes/quiz-detail-page'
+import { QuizzesPage } from '@/features/quizzes/quizzes-page'
+import { ResultsPage } from '@/features/quizzes/results-page'
 import { ReportsPage } from '@/features/reports/reports-page'
 import { StudentDetailPage } from '@/features/students/student-detail-page'
 import { StudentsPage } from '@/features/students/students-page'
 import { MyAttendancePage } from '@/features/student-portal/attendance-page'
 import { MyPaymentsPage } from '@/features/student-portal/payments-page'
+import { MyQuizzesPage } from '@/features/student-portal/quizzes-page'
 
 function FullPageSpinner() {
   return (
@@ -105,17 +111,23 @@ export const router = createBrowserRouter([
           { path: 'students', element: <StudentsPage /> },
           { path: 'students/:studentId', element: <StudentDetailPage /> },
           { path: 'debtors', element: <DebtorsPage /> },
+          { path: 'quizzes', element: <QuizzesPage /> },
+          { path: 'quizzes/:quizId', element: <QuizDetailPage /> },
+          { path: 'quizzes/assignments/:assignmentId/grading', element: <GradingPage /> },
+          { path: 'quizzes/assignments/:assignmentId/results', element: <ResultsPage /> },
           { path: 'expenses', element: <ExpensesPage /> },
           { path: 'reports', element: <ReportsPage /> },
           { path: 'profile', element: <ProfilePage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'my/attendance', element: <MyAttendancePage /> },
           { path: 'my/payments', element: <MyPaymentsPage /> },
+          { path: 'my/quizzes', element: <MyQuizzesPage /> },
           {
             element: <RequireAdmin />,
             children: [
               { path: 'admin', element: <AdminStatsPage /> },
               { path: 'admin/teachers', element: <TeachersPage /> },
+              { path: 'admin/quizzes', element: <AdminQuizzesCatalogPage /> },
             ],
           },
         ],

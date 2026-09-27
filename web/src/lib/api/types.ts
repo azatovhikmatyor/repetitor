@@ -543,3 +543,154 @@ export interface AdminStats {
   new_teachers_last_30_days: number
   new_groups_last_30_days: number
 }
+
+// --- Kvizlar ---
+
+export type QuestionType = 'single_choice' | 'multi_choice' | 'text' | 'essay'
+export type QuizMode = 'practice' | 'exam'
+export type ScoreRule = 'best' | 'average' | 'latest'
+export type AttemptStatus = 'in_progress' | 'submitted' | 'graded'
+
+export interface QuestionOption {
+  id: string
+  text: string
+}
+
+/** O'qituvchi ko'rinishi — to'g'ri javob bilan. */
+export interface Question {
+  id: number
+  order_index: number
+  type: QuestionType
+  prompt: string
+  media_url: string | null
+  options: QuestionOption[] | null
+  correct_answer: unknown
+  points: number
+}
+
+/** O'quvchi test yechayotgandagi ko'rinish — to'g'ri javobsiz. */
+export interface QuestionPlay {
+  id: number
+  order_index: number
+  type: QuestionType
+  prompt: string
+  media_url: string | null
+  options: QuestionOption[] | null
+  points: number
+}
+
+export interface QuizSection {
+  id: number
+  order_index: number
+  title: string
+  instructions: string | null
+  questions: Question[]
+}
+
+export interface QuizSectionPlay {
+  id: number
+  order_index: number
+  title: string
+  instructions: string | null
+  questions: QuestionPlay[]
+}
+
+export interface QuizSummary {
+  id: number
+  subject: string
+  title: string
+  description: string | null
+  is_catalog: boolean
+  time_limit_minutes: number | null
+  question_count: number
+  /** Katalog ro'yxatida: shu o'qituvchi obuna bo'lganmi. */
+  is_subscribed: boolean
+}
+
+export interface Quiz extends QuizSummary {
+  sections: QuizSection[]
+}
+
+export interface QuizPlay {
+  id: number
+  title: string
+  time_limit_minutes: number | null
+  sections: QuizSectionPlay[]
+}
+
+export interface QuizAssignment {
+  id: number
+  quiz_id: number
+  quiz_title: string
+  group_id: number
+  group_name: string
+  mode: QuizMode
+  max_attempts: number | null
+  score_rule: ScoreRule
+  deadline: string | null
+  notified_at: string | null
+  created_at: string
+}
+
+export interface StudentAssignment extends QuizAssignment {
+  attempts_used: number
+}
+
+export interface AttemptStart {
+  attempt_id: number
+  attempt_no: number
+  max_attempts: number | null
+  started_at: string
+  quiz: QuizPlay
+}
+
+export interface AttemptResult {
+  attempt_id: number
+  status: AttemptStatus
+  auto_score: number | null
+  manual_score: number | null
+  total_score: number | null
+  max_score: number | null
+  pending_manual_grading: boolean
+}
+
+export interface AttemptHistoryItem {
+  attempt_id: number
+  assignment_id: number
+  quiz_title: string
+  mode: QuizMode
+  attempt_no: number
+  status: AttemptStatus
+  total_score: number | null
+  max_score: number | null
+  submitted_at: string | null
+}
+
+export interface PendingQuestion {
+  question_id: number
+  prompt: string
+  student_answer: unknown
+  max_points: number
+}
+
+export interface PendingGradingItem {
+  attempt_id: number
+  student_id: number
+  student_name: string
+  submitted_at: string | null
+  questions: PendingQuestion[]
+}
+
+export interface RankingEntry {
+  student_id: number
+  student_name: string
+  score: number
+  rank: number
+  out_of: number
+}
+
+export interface AssignmentResults {
+  assignment_id: number
+  fully_graded: boolean
+  entries: RankingEntry[]
+}

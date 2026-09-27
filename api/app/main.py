@@ -1,4 +1,7 @@
+import asyncio
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -11,6 +14,8 @@ from sqlalchemy.exc import IntegrityError
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.exceptions import AppError
+from app.modules.quizzes import scheduler as quiz_scheduler
+from app.modules.quizzes import telegram_bot as quiz_telegram_bot
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -40,7 +45,29 @@ TAGS_METADATA = [
     {"name": "payments", "description": "Oylik hisoblar va to'lovlar"},
     {"name": "reports", "description": "Dashboard va hisobotlar"},
     {"name": "admin", "description": "Super Admin amallari"},
+    {"name": "quizzes", "description": "Testlar, tayinlash, urinishlar va reyting"},
 ]
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Fon vazifalari: muddati o'tgan imtihonlarni tekshirish va Telegram bot.
+
+    Ikkalasi ham sozlanmagan bo'lsa (`.env` bo'sh) jim ishga tushmaydi —
+    `check_due_exam_assignments`/`telegram_sender` allaqachon shu holatni
+    xavfsiz qayta ishlaydi, lekin botni yoqish uchun token shart, aks holda
+    Telegram API'ga bo'sh token bilan so'rov yuborilib turmasin.
+    """
+    tasks = [asyncio.create_task(quiz_scheduler.run_forever())]
+    if settings.telegram_bot_token:
+        tasks.append(asyncio.create_task(quiz_telegram_bot.run_forever()))
+    try:
+        yield
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -50,6 +77,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 if settings.cors_origin_list:

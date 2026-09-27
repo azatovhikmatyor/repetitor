@@ -17,6 +17,15 @@ from app.modules.groups.schedule_models import (  # noqa: F401
     ScheduleVersion,
 )
 from app.modules.payments.models import MonthlyCharge, Payment  # noqa: F401
+from app.modules.quizzes.models import (  # noqa: F401
+    ParentTelegramLink,
+    Quiz,
+    QuizAssignment,
+    QuizAttempt,
+    QuizQuestion,
+    QuizSection,
+    QuizSubscription,
+)
 from app.modules.users.models import (  # noqa: F401
     PasswordResetToken,
     RefreshToken,
@@ -37,4 +46,11 @@ __all__ = [
     "MonthlyCharge",
     "Expense",
     "Payment",
+    "Quiz",
+    "QuizSection",
+    "QuizQuestion",
+    "QuizSubscription",
+    "QuizAssignment",
+    "QuizAttempt",
+    "ParentTelegramLink",
 ]

@@ -4,8 +4,10 @@ import { periodKey, type Period } from '@/lib/period'
 
 import { api } from './client'
 import type {
+  AssignmentResults,
   AttendanceReport,
   AttendanceSession,
+  AttemptHistoryItem,
   Dashboard,
   Debtors,
   ExpenseMonth,
@@ -17,7 +19,12 @@ import type {
   MonthlyReport,
   Page,
   Payment,
+  PendingGradingItem,
+  Quiz,
+  QuizAssignment,
+  QuizSummary,
   RevenuePoint,
+  StudentAssignment,
   StudentAttendance,
   StudentCharge,
   StudentDetail,
@@ -69,6 +76,19 @@ export const qk = {
   pendingTeachers: ['admin', 'teachers', 'pending-count'] as const,
   adminStats: ['admin', 'stats'] as const,
   expenses: (period: Period) => ['expenses', periodKey(period)] as const,
+  quizCatalog: (subject: string, page: number) =>
+    ['quizzes', 'catalog', subject, page] as const,
+  myQuizzes: (page: number) => ['quizzes', 'mine', page] as const,
+  quiz: (id: number) => ['quiz', id] as const,
+  quizAssignments: (groupId?: number) => ['quiz-assignments', groupId ?? 0] as const,
+  assignmentResults: (id: number) => ['quiz-assignment', id, 'results'] as const,
+  pendingGrading: (id: number) => ['quiz-assignment', id, 'pending-grading'] as const,
+  myQuizAssignments: ['me', 'quizzes', 'assignments'] as const,
+  myQuizHistory: (assignmentId?: number) =>
+    ['me', 'quizzes', 'history', assignmentId ?? 0] as const,
+  telegramLinkCode: ['me', 'quizzes', 'telegram-link-code'] as const,
+  adminCatalogQuizzes: (subject: string, page: number) =>
+    ['admin', 'quizzes', subject, page] as const,
 }
 
 export const dashboardQuery = () =>
@@ -294,4 +314,107 @@ export const adminStatsQuery = () =>
   queryOptions({
     queryKey: qk.adminStats,
     queryFn: ({ signal }) => api.get<AdminStats>('/admin/stats', undefined, signal),
+  })
+
+// --- Kvizlar ---
+
+export const quizCatalogQuery = (subject = '', page = 1) =>
+  queryOptions({
+    queryKey: qk.quizCatalog(subject, page),
+    queryFn: ({ signal }) =>
+      api.get<Page<QuizSummary>>(
+        '/quizzes/catalog',
+        { size: 20, page, subject: subject || undefined },
+        signal,
+      ),
+    placeholderData: keepPreviousData,
+  })
+
+/** O'qituvchi ishlatishi mumkin bo'lgan testlar — o'ziniki + obunalari. */
+export const myQuizzesQuery = (page = 1) =>
+  queryOptions({
+    queryKey: qk.myQuizzes(page),
+    queryFn: ({ signal }) =>
+      api.get<Page<QuizSummary>>('/quizzes', { size: 20, page }, signal),
+    placeholderData: keepPreviousData,
+  })
+
+export const quizQuery = (id: number) =>
+  queryOptions({
+    queryKey: qk.quiz(id),
+    queryFn: ({ signal }) => api.get<Quiz>(`/quizzes/${id}`, undefined, signal),
+  })
+
+export const quizAssignmentsQuery = (groupId?: number) =>
+  queryOptions({
+    queryKey: qk.quizAssignments(groupId),
+    queryFn: ({ signal }) =>
+      api.get<QuizAssignment[]>(
+        '/quizzes/assignments',
+        { group_id: groupId },
+        signal,
+      ),
+  })
+
+export const assignmentResultsQuery = (id: number) =>
+  queryOptions({
+    queryKey: qk.assignmentResults(id),
+    queryFn: ({ signal }) =>
+      api.get<AssignmentResults>(`/quizzes/assignments/${id}/results`, undefined, signal),
+  })
+
+export const pendingGradingQuery = (id: number) =>
+  queryOptions({
+    queryKey: qk.pendingGrading(id),
+    queryFn: ({ signal }) =>
+      api.get<PendingGradingItem[]>(
+        `/quizzes/assignments/${id}/pending-grading`,
+        undefined,
+        signal,
+      ),
+  })
+
+/** O'quvchining o'ziga: a'zo bo'lgan guruhlarga tayinlangan testlar. */
+export const myQuizAssignmentsQuery = () =>
+  queryOptions({
+    queryKey: qk.myQuizAssignments,
+    queryFn: ({ signal }) =>
+      api.get<StudentAssignment[]>('/students/me/quizzes/assignments', undefined, signal),
+  })
+
+export const myQuizHistoryQuery = (assignmentId?: number) =>
+  queryOptions({
+    queryKey: qk.myQuizHistory(assignmentId),
+    queryFn: ({ signal }) =>
+      api.get<AttemptHistoryItem[]>(
+        '/students/me/quizzes/history',
+        { assignment_id: assignmentId },
+        signal,
+      ),
+  })
+
+export const telegramLinkCodeQuery = () =>
+  queryOptions({
+    queryKey: qk.telegramLinkCode,
+    queryFn: ({ signal }) =>
+      api
+        .get<{ link_code: string }>(
+          '/students/me/quizzes/telegram-link-code',
+          undefined,
+          signal,
+        )
+        .then((response) => response.link_code),
+  })
+
+/** Admin: o'zi yaratgan katalog testlari. */
+export const adminCatalogQuizzesQuery = (subject = '', page = 1) =>
+  queryOptions({
+    queryKey: qk.adminCatalogQuizzes(subject, page),
+    queryFn: ({ signal }) =>
+      api.get<Page<QuizSummary>>(
+        '/admin/quizzes',
+        { size: 20, page, subject: subject || undefined },
+        signal,
+      ),
+    placeholderData: keepPreviousData,
   })

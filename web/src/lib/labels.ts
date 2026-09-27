@@ -1,9 +1,13 @@
 import type { Dictionary } from './i18n'
 import type {
   AttendanceStatus,
+  AttemptStatus,
   ChargeStatus,
   ExpenseCategory,
   PaymentMethod,
+  QuestionType,
+  QuizMode,
+  ScoreRule,
 } from './api/types'
 
 /**
@@ -73,4 +77,42 @@ export function chargeStateTone(
   amountDue: number,
 ): 'paid' | 'partial' | 'unpaid' | 'brand' {
   return amountDue === 0 ? 'brand' : chargeTone[status]
+}
+
+export function questionTypeLabel(t: Dictionary): Record<QuestionType, string> {
+  return t.enums.questionType
+}
+
+export function questionTypeOptions(
+  t: Dictionary,
+): { value: QuestionType; label: string }[] {
+  return Object.entries(t.enums.questionType).map(([value, label]) => ({
+    value: value as QuestionType,
+    label,
+  }))
+}
+
+export function quizModeLabel(t: Dictionary): Record<QuizMode, string> {
+  return t.enums.quizMode
+}
+
+export function scoreRuleLabel(t: Dictionary): Record<ScoreRule, string> {
+  return t.enums.scoreRule
+}
+
+export function scoreRuleOptions(t: Dictionary): { value: ScoreRule; label: string }[] {
+  return Object.entries(t.enums.scoreRule).map(([value, label]) => ({
+    value: value as ScoreRule,
+    label,
+  }))
+}
+
+export function attemptStatusLabel(t: Dictionary): Record<AttemptStatus, string> {
+  return t.enums.attemptStatus
+}
+
+export const attemptStatusTone: Record<AttemptStatus, 'neutral' | 'partial' | 'paid'> = {
+  in_progress: 'neutral',
+  submitted: 'partial',
+  graded: 'paid',
 }

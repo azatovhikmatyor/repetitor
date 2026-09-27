@@ -22,6 +22,7 @@ type IconName =
   | 'warning'
   | 'settings'
   | 'chevron-right'
+  | 'quiz'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: (
@@ -97,6 +98,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   'chevron-right': <path d="m9 5 7 7-7 7" />,
+  quiz: (
+    <>
+      <path d="M9 3h6a1 1 0 0 1 1 1v1h1a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1V4a1 1 0 0 1 1-1z" />
+      <path d="m9 13 2 2 4-4" />
+    </>
+  ),
 }
 
 export function Icon({

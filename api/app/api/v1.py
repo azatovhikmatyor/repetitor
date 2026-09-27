@@ -9,6 +9,9 @@ from app.modules.expenses.router import router as expenses_router
 from app.modules.groups.router import router as groups_router
 from app.modules.groups.router import students_router
 from app.modules.payments.router import router as payments_router
+from app.modules.quizzes.router import admin_router as quizzes_admin_router
+from app.modules.quizzes.router import router as quizzes_router
+from app.modules.quizzes.router import student_router as quizzes_student_router
 from app.modules.reports.router import router as reports_router
 
 api_router = APIRouter()
@@ -23,3 +26,6 @@ api_router.include_router(payments_router)
 api_router.include_router(expenses_router)
 api_router.include_router(reports_router)
 api_router.include_router(admin_router)
+api_router.include_router(quizzes_router)
+api_router.include_router(quizzes_student_router)
+api_router.include_router(quizzes_admin_router)

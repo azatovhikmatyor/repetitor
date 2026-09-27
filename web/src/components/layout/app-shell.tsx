@@ -31,18 +31,21 @@ export function AppShell() {
     { to: '/', label: t.nav.dashboard, icon: 'home' },
     { to: '/groups', label: t.nav.groups, icon: 'groups' },
     { to: '/students', label: t.nav.students, icon: 'students' },
+    { to: '/quizzes', label: t.nav.quizzes, icon: 'quiz' },
     { to: '/expenses', label: t.nav.expenses, icon: 'money' },
     { to: '/reports', label: t.nav.reports, icon: 'reports' },
   ]
   const adminNav: NavItem[] = [
     { to: '/admin', label: t.nav.platform, icon: 'home' },
     { to: '/admin/teachers', label: t.nav.teachers, icon: 'students', badge: 'pending-teachers' },
+    { to: '/admin/quizzes', label: t.nav.quizCatalog, icon: 'quiz' },
   ]
   // O'quvchi faqat o'zini ko'radi — guruh, o'quvchilar ro'yxati va
   // xarajatlar unga umuman ko'rinmaydi.
   const studentNav: NavItem[] = [
     { to: '/my/attendance', label: t.nav.myAttendance, icon: 'reports' },
     { to: '/my/payments', label: t.nav.myPayments, icon: 'money' },
+    { to: '/my/quizzes', label: t.nav.myQuizzes, icon: 'quiz' },
   ]
   const nav = isAdmin ? adminNav : isStudent ? studentNav : teacherNav
 

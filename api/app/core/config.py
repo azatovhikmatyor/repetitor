@@ -71,6 +71,10 @@ class Settings(BaseSettings):
     eskiz_password: str = ""
     eskiz_from: str = "4546"
 
+    # --- Telegram bot (ota-onalarga imtihon natijasi) ---
+    # Bo'sh bo'lsa xabarlar loglarga yoziladi, bot polling ham ishga tushmaydi.
+    telegram_bot_token: str = ""
+
     @computed_field
     @property
     def database_url(self) -> str:
