@@ -17,3 +17,5 @@ tzdata==2025.2
 httpx==0.28.1
 # Kvitansiya va hisobotni PDF qilib chiqarish uchun (app/core/pdf.py).
 reportlab==5.0.1
+# Prod ASGI server (Azure App Service startup.sh) — uvicorn workerlari bilan.
+gunicorn==23.0.0

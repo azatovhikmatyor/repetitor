@@ -70,6 +70,40 @@ bilan ishlanayotgan lokal dev'da) bu bo'lim jim o'tkazib yuboriladi —
 API o'zgarishsiz ishlayveradi. Joylashuvni `WEB_DIST_DIR` orqali
 o'zgartirish mumkin (standart: `../web/dist`).
 
+### Azure App Service (GitHub Actions orqali avtomatik deploy)
+
+`../.github/workflows/main_repetitor.yml` har `main`ga push'da: frontend'ni
+build qiladi, uni `api/web/dist` ichiga joylaydi (shu bilan `api/` papkasi
+o'zi ichida frontend'ni ham olib yuradigan mustaqil deploy artifaktiga
+aylanadi) va faqat shu `api/` papkasini Azure Web App'ga yuboradi.
+
+Bir martalik Azure Portal sozlamalari (Web App → Configuration):
+
+* **Application settings** (Environment variables):
+  * `SECRET_KEY` — uzun, tasodifiy qator (`.env.example`dagi standart
+    qiymat ishlatilmasin — bu faqat lokal dev uchun).
+  * `ENVIRONMENT=production`, `DEBUG=false`.
+  * `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
+    `POSTGRES_PASSWORD` — Azure Database for PostgreSQL rekvizitlari
+    (SQLite prod uchun mos emas: App Service fayl tizimi bir nechta
+    instансиya/restart bo'ylab barqaror emas). Yoki ularning o'rniga
+    to'g'ridan-to'g'ri `DATABASE_URL_OVERRIDE=postgresql+asyncpg://...`.
+  * `WEB_DIST_DIR=web/dist` — standart `../web/dist` emas, chunki deploy
+    paytida frontend endi `api/` ichida (`api/web/dist`), yonida emas.
+  * Kerak bo'lsa: `SMTP_*`, `ESKIZ_*`, `TELEGRAM_BOT_TOKEN`,
+    `CORS_ORIGINS` (bitta origin bo'lgani uchun odatda bo'sh qoladi).
+* **General settings → Startup Command**: `bash startup.sh` —
+  ([startup.sh](startup.sh)) avval `alembic upgrade head`ni, so'ng
+  `gunicorn`ni (uvicorn worker bilan) ishga tushiradi. Shunday qilib har
+  deploy o'zi migratsiya qiladi — Kudu SSH'ga qo'lda kirish shart emas.
+* **General settings → Always On**: yoqilgan bo'lishi kerak (Basic
+  tarifdan boshlab mavjud) — aks holda ilova bo'sh turganda uxlab
+  qoladi va fon vazifalari (`quizzes/scheduler.py`, Telegram bot polling)
+  to'xtaydi.
+
+Birinchi deploy'dan keyin tekshirish: `https://<app-nomi>.azurewebsites.net/health`
+`{"status":"ok",...}` qaytarishi, `/docs` va bosh sahifa (React) ochilishi kerak.
+
 ### Vaqtincha "desktop app" sifatida (shaxsiy kompyuterda sinash uchun)
 
 `desktop.py` — yuqoridagi bitta-process rejimni brauzer o'rniga alohida

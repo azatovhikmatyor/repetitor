@@ -15,3 +15,7 @@ media/
 # `scripts/create_desktop_shortcut.py` shu yerda hosil qiladi — har kimning
 # o'z kompyuterida avtomatik generatsiya qilinadi, repo'da saqlanmaydi.
 desktop_icon.ico
+
+# CI (.github/workflows/main_repetitor.yml) frontend'ni shu yerga
+# joylaydi (deploy artifakti uchun) — manba emas, generatsiya qilinadi.
+web/
