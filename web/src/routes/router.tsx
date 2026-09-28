@@ -15,13 +15,17 @@ import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { GroupDetailPage } from '@/features/groups/group-detail-page'
 import { GroupsPage } from '@/features/groups/groups-page'
 import { GroupPaymentsPage } from '@/features/payments/group-payments-page'
-import { ProfilePage } from '@/features/profile/profile-page'
-import { SettingsPage } from '@/features/settings/settings-page'
+import { SettingsAppearancePage } from '@/features/settings/settings-appearance-page'
+import { SettingsHubPage } from '@/features/settings/settings-hub-page'
+import { SettingsLanguagePage } from '@/features/settings/settings-language-page'
+import { SettingsProfilePage } from '@/features/settings/settings-profile-page'
+import { SettingsSecurityPage } from '@/features/settings/settings-security-page'
 import { ExpensesPage } from '@/features/expenses/expenses-page'
 import { DebtorsPage } from '@/features/payments/debtors-page'
 import { AdminQuizzesCatalogPage } from '@/features/admin/quizzes-catalog-page'
 import { GradingPage } from '@/features/quizzes/grading-page'
 import { QuizDetailPage } from '@/features/quizzes/quiz-detail-page'
+import { QuizFormPage } from '@/features/quizzes/quiz-form-page'
 import { QuizzesPage } from '@/features/quizzes/quizzes-page'
 import { ResultsPage } from '@/features/quizzes/results-page'
 import { ReportsPage } from '@/features/reports/reports-page'
@@ -112,13 +116,19 @@ export const router = createBrowserRouter([
           { path: 'students/:studentId', element: <StudentDetailPage /> },
           { path: 'debtors', element: <DebtorsPage /> },
           { path: 'quizzes', element: <QuizzesPage /> },
+          { path: 'quizzes/new', element: <QuizFormPage endpoint="/quizzes" /> },
           { path: 'quizzes/:quizId', element: <QuizDetailPage /> },
+          { path: 'quizzes/:quizId/edit', element: <QuizFormPage endpoint="/quizzes" /> },
           { path: 'quizzes/assignments/:assignmentId/grading', element: <GradingPage /> },
           { path: 'quizzes/assignments/:assignmentId/results', element: <ResultsPage /> },
           { path: 'expenses', element: <ExpensesPage /> },
           { path: 'reports', element: <ReportsPage /> },
-          { path: 'profile', element: <ProfilePage /> },
-          { path: 'settings', element: <SettingsPage /> },
+          { path: 'profile', element: <Navigate to="/settings/profile" replace /> },
+          { path: 'settings', element: <SettingsHubPage /> },
+          { path: 'settings/profile', element: <SettingsProfilePage /> },
+          { path: 'settings/language', element: <SettingsLanguagePage /> },
+          { path: 'settings/appearance', element: <SettingsAppearancePage /> },
+          { path: 'settings/security', element: <SettingsSecurityPage /> },
           { path: 'my/attendance', element: <MyAttendancePage /> },
           { path: 'my/payments', element: <MyPaymentsPage /> },
           { path: 'my/quizzes', element: <MyQuizzesPage /> },
@@ -128,6 +138,11 @@ export const router = createBrowserRouter([
               { path: 'admin', element: <AdminStatsPage /> },
               { path: 'admin/teachers', element: <TeachersPage /> },
               { path: 'admin/quizzes', element: <AdminQuizzesCatalogPage /> },
+              { path: 'admin/quizzes/new', element: <QuizFormPage endpoint="/admin/quizzes" /> },
+              {
+                path: 'admin/quizzes/:quizId/edit',
+                element: <QuizFormPage endpoint="/admin/quizzes" />,
+              },
             ],
           },
         ],

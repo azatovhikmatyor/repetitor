@@ -1,10 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router'
 
 import { PageHeader } from '@/components/layout/app-shell'
 import { AvatarUploader } from '@/components/ui/avatar-uploader'
-import { ConfirmModal } from '@/components/ui/modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
@@ -16,25 +14,35 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useT } from '@/lib/i18n'
 import { formatDateTime } from '@/lib/format'
 
-export function ProfilePage() {
-  const { user, setUser, logout } = useAuth()
-  const toast = useToast()
-  const t = useT()
-  const [form, setForm] = useState({
+function formFrom(user: User | null) {
+  return {
     first_name: user?.first_name ?? '',
     last_name: user?.last_name ?? '',
     middle_name: user?.middle_name ?? '',
     phone: user?.phone ?? '',
     email: user?.email ?? '',
-  })
+  }
+}
+
+/**
+ * Profil ma'lumotlari — ism/aloqa maydonlari standart holatda faqat o'qish
+ * uchun, "Tahrirlash" bosilgandagina tahrirlanadigan bo'ladi. Rasm yuklash
+ * bundan mustaqil — u har doim faol (tanlangan zahoti yuboriladi).
+ */
+export function SettingsProfilePage() {
+  const { user, setUser } = useAuth()
+  const toast = useToast()
+  const t = useT()
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState(() => formFrom(user))
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [confirmLogout, setConfirmLogout] = useState(false)
 
   const save = useMutation({
     mutationFn: () => api.patch<User>('/auth/me', form),
     onSuccess: (updated) => {
       setUser(updated)
       setErrors({})
+      setEditing(false)
       toast.success(t.profile.savedToast)
     },
     onError: (error) => {
@@ -45,24 +53,48 @@ export function ProfilePage() {
 
   if (!user) return null
 
+  function startEditing() {
+    setForm(formFrom(user))
+    setErrors({})
+    setEditing(true)
+  }
+
+  function cancelEditing() {
+    setForm(formFrom(user))
+    setErrors({})
+    setEditing(false)
+  }
+
   const canResetAlone = Boolean(form.email || form.phone)
 
   return (
     <>
       <PageHeader
-        title={t.profile.title}
-        description={
-          user.role === 'super_admin'
-            ? t.nav.superAdminRole
-            : user.role === 'student'
-              ? t.nav.studentRole
-              : t.nav.teacherRole
-        }
+        title={t.settings.hubProfileRow}
+        back={{ to: '/settings', label: t.settings.back }}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="max-w-lg space-y-6">
         <Card>
-          <CardHeader title={t.profile.infoTitle} />
+          <CardHeader
+            title={t.profile.infoTitle}
+            action={
+              editing ? (
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={cancelEditing}>
+                    {t.profile.cancelBtn}
+                  </Button>
+                  <Button size="sm" loading={save.isPending} onClick={() => save.mutate()}>
+                    {t.profile.save}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={startEditing}>
+                  {t.profile.editBtn}
+                </Button>
+              )
+            }
+          />
           <CardBody className="space-y-4">
             <AvatarUploader<User>
               src={user.avatar_url}
@@ -76,6 +108,7 @@ export function ProfilePage() {
                 label={t.profile.firstName}
                 value={form.first_name}
                 error={errors.first_name}
+                disabled={!editing}
                 onChange={(event) =>
                   setForm({ ...form, first_name: event.target.value })
                 }
@@ -84,6 +117,7 @@ export function ProfilePage() {
                 label={t.profile.lastName}
                 value={form.last_name}
                 error={errors.last_name}
+                disabled={!editing}
                 onChange={(event) =>
                   setForm({ ...form, last_name: event.target.value })
                 }
@@ -95,6 +129,7 @@ export function ProfilePage() {
               value={form.middle_name}
               error={errors.middle_name}
               placeholder={t.profile.middlePlaceholder}
+              disabled={!editing}
               onChange={(event) =>
                 setForm({ ...form, middle_name: event.target.value })
               }
@@ -105,24 +140,22 @@ export function ProfilePage() {
               type="email"
               value={form.email}
               error={errors.email}
+              disabled={!editing}
               onChange={(event) => setForm({ ...form, email: event.target.value })}
             />
             <Input
               label={t.profile.phone}
               value={form.phone}
               error={errors.phone}
+              disabled={!editing}
               onChange={(event) => setForm({ ...form, phone: event.target.value })}
             />
 
-            {!canResetAlone && (
+            {editing && !canResetAlone && (
               <p className="rounded-lg bg-partial/10 px-3 py-2 text-xs text-slate-700">
                 {t.profile.resetAloneHint}
               </p>
             )}
-
-            <Button loading={save.isPending} onClick={() => save.mutate()}>
-              {t.profile.save}
-            </Button>
           </CardBody>
         </Card>
 
@@ -159,28 +192,9 @@ export function ProfilePage() {
             </dl>
 
             <p className="text-xs text-slate-500">{t.profile.usernameFixedNotice}</p>
-
-            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <Link to="/change-password">
-                <Button variant="secondary">{t.profile.changePassword}</Button>
-              </Link>
-              <Button variant="danger-ghost" onClick={() => setConfirmLogout(true)}>
-                {t.logoutModal.confirmLabel}
-              </Button>
-            </div>
           </CardBody>
         </Card>
       </div>
-
-      <ConfirmModal
-        open={confirmLogout}
-        onClose={() => setConfirmLogout(false)}
-        onConfirm={() => void logout()}
-        destructive
-        title={t.logoutModal.title}
-        message={t.logoutModal.message}
-        confirmLabel={t.logoutModal.confirmLabel}
-      />
     </>
   )
 }

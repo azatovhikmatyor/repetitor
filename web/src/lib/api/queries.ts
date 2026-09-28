@@ -89,6 +89,7 @@ export const qk = {
   telegramLinkCode: ['me', 'quizzes', 'telegram-link-code'] as const,
   adminCatalogQuizzes: (subject: string, page: number) =>
     ['admin', 'quizzes', subject, page] as const,
+  adminQuiz: (id: number) => ['admin', 'quiz', id] as const,
 }
 
 export const dashboardQuery = () =>

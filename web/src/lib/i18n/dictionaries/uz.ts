@@ -788,10 +788,15 @@ const uz = {
       updatedToast: 'Test yangilandi',
       cloneToast: 'Nusxa yaratildi',
       deletedToast: "Test o'chirildi",
+      importJsonBtn: 'JSON fayldan yuklash',
+      importedToast: 'Fayldan yuklandi — tekshirib, saqlang',
       needSection: 'Kamida bitta bo‘lim qo‘shing',
       needQuestion: 'Har bir bo‘limda kamida bitta savol bo‘lishi kerak',
       needOptions: 'Kamida ikkita variant kiriting',
       needCorrectAnswer: 'To‘g‘ri javobni belgilang',
+      reorderHint: 'Tartibni o‘zgartirish uchun torting',
+      draftRestoredNotice: 'Saqlanmagan qoralama tiklandi',
+      discardDraftBtn: 'Qoralamani bekor qilish',
     },
 
     detail: {
@@ -804,6 +809,7 @@ const uz = {
       deleteQuizConfirmTitle: "Testni o'chirish",
       deleteQuizConfirmMessage: "Bu test va uning barcha bo'limlari, savollari o'chiriladi. Agar tayinlangan bo'lsa, o'chirib bo'lmaydi.",
       quizDeletedToast: "Test o'chirildi",
+      downloadJsonBtn: 'JSON yuklab olish',
       assignBtn: 'Guruhga tayinlash',
       assignmentsTitle: 'Tayinlovlar',
       noAssignments: 'Hali guruhga tayinlanmagan',
@@ -1002,11 +1008,19 @@ const uz = {
 
   settings: {
     title: 'Sozlamalar',
-    back: 'Profil',
+    back: 'Sozlamalar',
     languageTitle: 'Til',
     languageDesc: "Ilova qaysi tilda ko'rsatilishini tanlang",
     themeTitle: 'Tema',
     themeDesc: "Ilova ko'rinishini tanlang",
+
+    hubProfileRow: 'Profil',
+    hubProfileDesc: 'Ism, aloqa ma’lumotlari, rasm',
+    hubLanguageRow: 'Til',
+    hubAppearanceRow: "Ko'rinish",
+    hubAppearanceDesc: 'Tema',
+    hubSecurityRow: 'Xavfsizlik',
+    hubSecurityDesc: "Parolni o'zgartirish",
   },
 
   profile: {
@@ -1021,6 +1035,8 @@ const uz = {
     resetAloneHint:
       "Email yoki telefon qo’ymasangiz, parolni unutganda faqat administrator tiklab bera oladi.",
     save: 'Saqlash',
+    editBtn: 'Tahrirlash',
+    cancelBtn: 'Bekor qilish',
     accountTitle: 'Hisob',
     username: 'Username',
     status: 'Holat',

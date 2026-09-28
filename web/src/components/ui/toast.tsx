@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from 'react'
 
-import { ApiError } from '@/lib/api/client'
 import { cn } from '@/lib/cn'
 
 type Tone = 'success' | 'error' | 'info'
@@ -79,8 +78,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         })
       },
       // Xatolikni bir joyda matnga aylantiramiz — har ekranda takrorlanmaydi.
+      // `instanceof Error` (nafaqat `ApiError`) — masalan client tomonidagi
+      // validatsiya (`AvatarUploader`dagi fayl hajmi) ham aniq xabar bilan
+      // ko'rinsin, generic "Xatolik yuz berdi"ga tushib qolmasin.
       error: (error) =>
-        push('error', error instanceof ApiError ? error.message : 'Xatolik yuz berdi'),
+        push('error', error instanceof Error ? error.message : 'Xatolik yuz berdi'),
     }),
     [push, dismiss],
   )

@@ -171,15 +171,30 @@ if _web_dist.is_dir():
     if _web_assets.is_dir():
         app.mount("/assets", StaticFiles(directory=_web_assets), name="web-assets")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_web(full_path: str) -> FileResponse:
+    _api_prefix = settings.api_v1_prefix.strip("/") + "/"
+
+    @app.get("/{full_path:path}", include_in_schema=False, response_model=None)
+    async def serve_web(full_path: str) -> FileResponse | JSONResponse:
         """SPA fallback: haqiqiy fayl bo'lsa o'shani, aks holda `index.html`.
 
         React Router marshrutlashni brauzer tomonida qiladi (`/groups/5`
         kabi manzillar serverda alohida mavjud emas) — shuning uchun so'ralgan
         yo'lga mos fayl topilmasa (masalan sahifa yangilanganda) doim
         `index.html` qaytariladi, qolgan marshrutlashni frontend o'zi qiladi.
+
+        `/api/v1/...` ostidagi, lekin `api_router`da ro'yxatdan o'tmagan
+        yo'llar BU YERGA tushmasligi kerak — aks holda backend eskirgan
+        (yangi endpoint hali qo'shilmagan/deploy bo'lmagan) bo'lsa, frontend
+        JSON o'rniga `index.html`ni oladi va buni JSON deb o'qishga urinib,
+        tushunarsiz "Xatolik yuz berdi"ga uchraydi. Shuning uchun bu yerda
+        aniq 404 JSON qaytariladi — frontend hech bo'lmaganda to'g'ri
+        xato xabarini ko'rsatadi.
         """
+        if full_path.startswith(_api_prefix):
+            return JSONResponse(
+                status_code=404,
+                content={"code": "not_found", "detail": "Not Found", "details": None},
+            )
         candidate = _web_dist / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)

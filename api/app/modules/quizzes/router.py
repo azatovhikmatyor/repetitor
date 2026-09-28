@@ -53,6 +53,15 @@ async def list_my_catalog_quizzes(
     return Page.create(items, total, params)
 
 
+@admin_router.get(
+    "/{quiz_id}", response_model=schemas.QuizOut, summary="Katalog testi tafsiloti"
+)
+async def get_catalog_quiz(
+    quiz_id: int, db: DbSession, admin: CurrentAdmin
+) -> schemas.QuizOut:
+    return await service.get_quiz_detail(db, teacher_id=admin.id, quiz_id=quiz_id)
+
+
 @admin_router.put(
     "/{quiz_id}", response_model=schemas.QuizOut, summary="Katalog testini tahrirlash"
 )
@@ -60,9 +69,7 @@ async def update_catalog_quiz(
     quiz_id: int, data: schemas.QuizUpdateFull, db: DbSession, admin: CurrentAdmin
 ) -> schemas.QuizOut:
     """Katalog testini bo'lim va savollar bilan birga tahrirlash."""
-    quiz = await service.update_quiz(
-        db, owner_id=admin.id, quiz_id=quiz_id, data=data
-    )
+    quiz = await service.update_quiz(db, owner_id=admin.id, quiz_id=quiz_id, data=data)
     return await service.get_quiz_detail(db, teacher_id=admin.id, quiz_id=quiz.id)
 
 
@@ -71,9 +78,7 @@ async def update_catalog_quiz(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Katalog testini o'chirish",
 )
-async def delete_catalog_quiz(
-    quiz_id: int, db: DbSession, admin: CurrentAdmin
-) -> None:
+async def delete_catalog_quiz(quiz_id: int, db: DbSession, admin: CurrentAdmin) -> None:
     await service.delete_quiz(db, owner_id=admin.id, quiz_id=quiz_id)
 
 
@@ -170,9 +175,7 @@ async def update_own_quiz(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="O'z testimni o'chirish",
 )
-async def delete_own_quiz(
-    quiz_id: int, db: DbSession, teacher: CurrentTeacher
-) -> None:
+async def delete_own_quiz(quiz_id: int, db: DbSession, teacher: CurrentTeacher) -> None:
     await service.delete_quiz(db, owner_id=teacher.id, quiz_id=quiz_id)
 
 

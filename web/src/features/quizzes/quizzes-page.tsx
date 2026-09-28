@@ -16,17 +16,14 @@ import type { Quiz, QuizSummary } from '@/lib/api/types'
 import { useT } from '@/lib/i18n'
 import { useDebounced } from '@/lib/use-debounced'
 
-import { QuizFormModal } from './quiz-form-modal'
-
 type Tab = 'mine' | 'catalog'
 
 export function QuizzesPage() {
   const t = useT()
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('mine')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [creating, setCreating] = useState(false)
-  const [editingQuiz, setEditingQuiz] = useState<Quiz | undefined>(undefined)
   const debouncedSearch = useDebounced(search)
 
   const mine = useQuery({ ...myQuizzesQuery(page), enabled: tab === 'mine' })
@@ -48,7 +45,7 @@ export function QuizzesPage() {
       <PageHeader
         title={t.quizzes.title}
         description={data ? t.quizzes.countCaption(data.total) : undefined}
-        actions={<Button onClick={() => setCreating(true)}>{t.quizzes.newQuiz}</Button>}
+        actions={<Button onClick={() => navigate('/quizzes/new')}>{t.quizzes.newQuiz}</Button>}
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -86,7 +83,7 @@ export function QuizzesPage() {
           description={t.quizzes.noneYetDesc}
           action={
             tab === 'mine' ? (
-              <Button onClick={() => setCreating(true)}>{t.quizzes.newQuiz}</Button>
+              <Button onClick={() => navigate('/quizzes/new')}>{t.quizzes.newQuiz}</Button>
             ) : undefined
           }
         />
@@ -101,7 +98,6 @@ export function QuizzesPage() {
                 quiz={quiz}
                 showCatalogActions={tab === 'catalog'}
                 isMineTab={tab === 'mine' && !quiz.is_catalog}
-                onEdit={setEditingQuiz}
                 onDeleted={() => void mine.refetch()}
               />
             ))}
@@ -116,24 +112,6 @@ export function QuizzesPage() {
         </>
       )}
 
-      {creating && (
-        <QuizFormModal
-          open
-          onClose={() => setCreating(false)}
-          endpoint="/quizzes"
-          invalidateKey={['quizzes', 'mine']}
-        />
-      )}
-
-      {editingQuiz && (
-        <QuizFormModal
-          open
-          quiz={editingQuiz}
-          onClose={() => setEditingQuiz(undefined)}
-          endpoint="/quizzes"
-          invalidateKey={['quizzes', 'mine']}
-        />
-      )}
     </>
   )
 }
@@ -167,13 +145,11 @@ function QuizCard({
   quiz,
   showCatalogActions,
   isMineTab,
-  onEdit,
   onDeleted,
 }: {
   quiz: QuizSummary
   showCatalogActions: boolean
   isMineTab: boolean
-  onEdit: (q: Quiz) => void
   onDeleted: () => void
 }) {
   const t = useT()
@@ -288,8 +264,7 @@ function QuizCard({
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              // Fetch full quiz data for edit
-              api.get<Quiz>(`/quizzes/${quiz.id}`).then(onEdit).catch(() => toast.error(t.quizzes.notFound))
+              navigate(`/quizzes/${quiz.id}/edit`)
             }}
           >
             {t.quizzes.detail.editBtn}

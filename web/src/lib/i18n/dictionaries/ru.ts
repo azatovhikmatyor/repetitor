@@ -783,10 +783,15 @@ const ru: Dictionary = {
       updatedToast: 'Тест обновлён',
       cloneToast: 'Копия создана',
       deletedToast: "Тест удалён",
+      importJsonBtn: 'Загрузить из JSON',
+      importedToast: 'Загружено из файла — проверьте и сохраните',
       needSection: 'Добавьте хотя бы один раздел',
       needQuestion: 'В каждом разделе должен быть хотя бы один вопрос',
       needOptions: 'Введите минимум два варианта',
       needCorrectAnswer: 'Укажите правильный ответ',
+      reorderHint: 'Перетащите, чтобы изменить порядок',
+      draftRestoredNotice: 'Восстановлен несохранённый черновик',
+      discardDraftBtn: 'Отменить черновик',
     },
 
     detail: {
@@ -799,6 +804,7 @@ const ru: Dictionary = {
       deleteQuizConfirmTitle: "Удалить тест",
       deleteQuizConfirmMessage: "Тест и все его разделы с вопросами будут удалены. Если тест назначен группе, удалить нельзя.",
       quizDeletedToast: "Тест удалён",
+      downloadJsonBtn: 'Скачать JSON',
       assignBtn: 'Назначить группе',
       assignmentsTitle: 'Назначения',
       noAssignments: 'Пока не назначен ни одной группе',
@@ -995,11 +1001,19 @@ const ru: Dictionary = {
 
   settings: {
     title: 'Настройки',
-    back: 'Профиль',
+    back: 'Настройки',
     languageTitle: 'Язык',
     languageDesc: 'Выберите язык интерфейса приложения',
     themeTitle: 'Тема',
     themeDesc: 'Выберите внешний вид приложения',
+
+    hubProfileRow: 'Профиль',
+    hubProfileDesc: 'Имя, контакты, фото',
+    hubLanguageRow: 'Язык',
+    hubAppearanceRow: 'Внешний вид',
+    hubAppearanceDesc: 'Тема',
+    hubSecurityRow: 'Безопасность',
+    hubSecurityDesc: 'Смена пароля',
   },
 
   profile: {
@@ -1014,6 +1028,8 @@ const ru: Dictionary = {
     resetAloneHint:
       'Без email или телефона восстановить пароль сможет только администратор.',
     save: 'Сохранить',
+    editBtn: 'Изменить',
+    cancelBtn: 'Отмена',
     accountTitle: 'Аккаунт',
     username: 'Username',
     status: 'Статус',

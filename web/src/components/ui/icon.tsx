@@ -23,6 +23,11 @@ type IconName =
   | 'settings'
   | 'chevron-right'
   | 'quiz'
+  | 'user'
+  | 'globe'
+  | 'palette'
+  | 'lock'
+  | 'grip'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: (
@@ -102,6 +107,43 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M9 3h6a1 1 0 0 1 1 1v1h1a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1V4a1 1 0 0 1 1-1z" />
       <path d="m9 13 2 2 4-4" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20a8 8 0 0 1 16 0" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.3-.6.1-1.2.8-1.2H15a5 5 0 0 0 5-5 8 8 0 0 0-8-10z" />
+      <circle cx="7.5" cy="11" r="1.2" />
+      <circle cx="10.5" cy="7.5" r="1.2" />
+      <circle cx="15" cy="8" r="1.2" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </>
+  ),
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1.2" />
+      <circle cx="15" cy="6" r="1.2" />
+      <circle cx="9" cy="12" r="1.2" />
+      <circle cx="15" cy="12" r="1.2" />
+      <circle cx="9" cy="18" r="1.2" />
+      <circle cx="15" cy="18" r="1.2" />
     </>
   ),
 }

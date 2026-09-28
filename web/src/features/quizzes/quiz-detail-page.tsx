@@ -18,7 +18,6 @@ import { formatDateTime } from '@/lib/format'
 import { quizModeLabel, scoreRuleLabel } from '@/lib/labels'
 
 import { AssignModal } from './assign-modal'
-import { QuizFormModal } from './quiz-form-modal'
 
 export function QuizDetailPage() {
   const { quizId } = useParams()
@@ -32,7 +31,6 @@ export function QuizDetailPage() {
   const assignments = useQuery(quizAssignmentsQuery())
 
   const [assigning, setAssigning] = useState(false)
-  const [editing, setEditing] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<QuizAssignment | null>(null)
   const [deleteQuizConfirm, setDeleteQuizConfirm] = useState(false)
 
@@ -86,7 +84,7 @@ export function QuizDetailPage() {
           <span className="flex flex-wrap gap-2">
             {!data.is_catalog && (
               <>
-                <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Button variant="secondary" onClick={() => navigate(`/quizzes/${id}/edit`)}>
                   {t.quizzes.detail.editBtn}
                 </Button>
                 <Button
@@ -274,16 +272,6 @@ export function QuizDetailPage() {
       </div>
 
       {assigning && <AssignModal quizId={id} onClose={() => setAssigning(false)} />}
-
-      {editing && data && (
-        <QuizFormModal
-          open
-          quiz={data}
-          onClose={() => setEditing(false)}
-          endpoint="/quizzes"
-          invalidateKey={['quiz', id]}
-        />
-      )}
 
       <ConfirmModal
         open={deleteTarget !== null}
